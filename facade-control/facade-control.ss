@@ -1,19 +1,42 @@
 #lang racket
 
 (require racket/udp)
+(require fluxus-018/fluxus)
+
+(require "facade-data.ss")
 
 (provide fc-init
-		 fc-send)
+		 fc-send
+		 fc-pixels
+		 fc-pixels-width
+		 fc-pixels-height
+		 fc-update)
 
 (define fc-hostname "192.168.1.138")
 (define fc-port 8080)
 (define fc-socket (udp-open-socket))
 
+(define fc-pixels 0)
+(define fc-pixels-width 80)
+(define fc-pixels-height 50)
+(define fc-pixels-size (* fc-pixels-width fc-pixels-height))
+
+; mapping from window address to pixel coordinates
+(define fc-mapping (make-vector 1085 0))
+
+; colour to be sent
+(define fc-colours (make-vector 1085 #(0 0 0)))
+
 (define (fc-init hostname [port 8080])
 	(set! fc-hostname hostname)
 	(set! fc-port port)
 	(udp-close fc-socket)
-	(set! fc-socket (udp-open-socket)))
+	(set! fc-socket (udp-open-socket))
+
+	(destroy fc-pixels)
+	(set! fc-pixels (build-pixels fc-pixels-width fc-pixels-height #t))
+	(with-primitive fc-pixels
+		(scale 0)))
 
 (define fc-send
   (let ([last-send-time 0])
@@ -27,9 +50,52 @@
 		  (apply
 			bytes-append
 			(for/list ([i (in-range 0 1085)])
-				(make-packet i (list-ref colours i)))))
+				(make-packet i (vector-ref colours i)))))
 		(define current-time (current-inexact-milliseconds))
 		(when (>= (- current-time last-send-time) 40) ; max 25 fps
 			(udp-send-to fc-socket fc-hostname fc-port bstr)
 			(set! last-send-time current-time)))))
+
+; (map-side s p double)
+; 	s : struct-side
+; 	p : 2d coordinate vector of position
+; 	double : bool, #t for north side's double window
+
+(define (map-side s p)
+  (define (set-window-mapping! v addr)
+	(vector-set! fc-mapping addr (+ (* fc-pixels-width (vy v)) (vx v))))
+
+  (for ([line (side-addrs s)]
+		[y (in-range (add1 (- (side-end-row s)
+							  (side-start-row s))))])
+	   (for ([w line]
+			 [x (in-range (side-nr-columns s))])
+			; TODO: calculate average pixel value for double windows
+			(when (> w 0)
+			  (if (side-double? s)
+				(set-window-mapping! (vadd p
+										(vector (* 2 x) y)) w)
+				(set-window-mapping! (vadd p
+										(vector x y)) w))))))
+
+; calculate mapping
+(map-side main-building-north #(0 0))
+(map-side main-building-west #(10 0))
+(map-side main-building-south #(20 1))
+(map-side main-building-east #(30 1))
+
+; (fc-update [download?])
+; 	download? : bool?, whether downloading data from fc-pixels is required
+; 				defaults to #t
+;
+; Sends the data of fc-pixels to the facade.
+
+(define (fc-update [download? #t])
+ 	(with-primitive fc-pixels
+		(pixels-download)
+		(for ([i (in-range 1085)])
+			 (vector-set! fc-colours i
+						  (pdata-ref "c" (vector-ref fc-mapping i)))))
+
+	(fc-send fc-colours))
 
