@@ -12,7 +12,7 @@
 		 fc-pixels-height
 		 fc-update)
 
-(define fc-hostname "192.168.1.138")
+(define fc-hostname "127.0.0.1")
 (define fc-port 8080)
 (define fc-socket (udp-open-socket))
 
@@ -27,6 +27,11 @@
 ; colour to be sent
 (define fc-colours (make-vector 1085 #(0 0 0)))
 
+; (fc-init hostname [port 8080])
+; 	hostname : string
+; 	port : integer
+;
+; Initializes the facade controller.
 (define (fc-init hostname [port 8080])
 	(set! fc-hostname hostname)
 	(set! fc-port port)
@@ -38,6 +43,10 @@
 	(with-primitive fc-pixels
 		(scale 0)))
 
+; (fc-send colours)
+; 	colours : vector of 1085 rgb colours, with colour components range 0-1
+;
+; Sends colours to the facade.
 (define fc-send
   (let ([last-send-time 0])
   	(lambda (colours)
@@ -60,7 +69,6 @@
 ; 	s : struct-side
 ; 	p : 2d coordinate vector of position
 ; 	double : bool, #t for north side's double window
-
 (define (map-side s p)
   (define (set-window-mapping! v addr)
 	(vector-set! fc-mapping addr (+ (* fc-pixels-width (vy v)) (vx v))))
@@ -89,13 +97,12 @@
 ; 				defaults to #t
 ;
 ; Sends the data of fc-pixels to the facade.
-
 (define (fc-update [download? #t])
  	(with-primitive fc-pixels
-		(pixels-download)
+		(when download?
+			(pixels-download))
 		(for ([i (in-range 1085)])
 			 (vector-set! fc-colours i
 						  (pdata-ref "c" (vector-ref fc-mapping i)))))
-
 	(fc-send fc-colours))
 
