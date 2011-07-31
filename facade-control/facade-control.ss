@@ -24,7 +24,7 @@
 ; mapping from window address to pixel coordinates
 (define fc-mapping (make-vector 1085 0))
 
-; colour to be sent
+; colours to be sent
 (define fc-colours (make-vector 1085 #(0 0 0)))
 
 ; (fc-init hostname [port 8080])
