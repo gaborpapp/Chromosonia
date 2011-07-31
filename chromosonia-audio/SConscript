@@ -1,0 +1,64 @@
+###############################################################
+# SConscript for chromosonia-audio
+#
+# This is the main RACKET module for the fluxus sonotopy functions
+
+Import("env", "BinaryModulesLocation", "MZDYN", "static_modules", "racket_framework")
+senv = env.Clone()
+
+Target = "chromosonia-audio_ss"
+
+Libs =  Split("jack fftw3 sonotopy")
+
+Frameworks = []
+
+if senv['PLATFORM'] == 'darwin':
+	if racket_framework:
+		Frameworks += ['Racket']
+	else:
+		Libs += ['racket3m']
+
+Requirements = True
+
+# check installed libraries
+LibList = [['sonotopy', 'sonotopy/sonotopy.hpp']]
+
+senv.Replace(LIBS = [])
+
+if not GetOption('clean'):
+	print 'Checking requirements for', Target, '...'
+	conf = Configure(senv)
+	for (lib, headers) in LibList:
+		if not conf.CheckLibWithHeader(lib, headers, 'C++'):
+			print "WARNING: '%s' must be installed!" % (lib)
+			Requirements = False
+
+	senv = conf.Finish()
+	# ... but we shouldn't forget to add them to LIBS manually
+	Libs += [rec[0] for rec in LibList]
+
+Source = Split("src/FluxusSonotopy.cpp \
+		src/SonotopyInterface.cpp \
+                src/SchemeHelper.cpp") + \
+		[MZDYN]
+		
+if Requirements:
+	if not GetOption('clean'):
+		print Target, 'requirements... yes'
+	if static_modules:
+		senv.StaticLibrary(source = Source, 
+					  target = Target,
+					  LIBS = Libs,
+					  FRAMEWORKS = Frameworks)
+	else:
+		output = senv.SharedLibrary(source = Source, 
+						  target = Target,
+						  LIBS = Libs,
+						  FRAMEWORKS = Frameworks,
+						  SHLIBPREFIX = '')
+
+		senv.Install(BinaryModulesLocation, output)
+else:
+	if not GetOption('clean'):
+		print Target, 'requirements... NO'
+
