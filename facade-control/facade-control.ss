@@ -17,8 +17,8 @@
 (define fc-socket (udp-open-socket))
 
 (define fc-pixels 0)
-(define fc-pixels-width 80)
-(define fc-pixels-height 50)
+(define fc-pixels-width 74)
+(define fc-pixels-height 28)
 (define fc-pixels-size (* fc-pixels-width fc-pixels-height))
 
 ; mapping from window address to pixel coordinates
@@ -71,7 +71,15 @@
 ; 	double : bool, #t for north side's double window
 (define (map-side s p)
   (define (set-window-mapping! v addr)
-	(vector-set! fc-mapping addr (+ (* fc-pixels-width (vy v)) (vx v))))
+	(let ([pixels-addr (+ (* fc-pixels-width (vy v)) (vx v))])
+	(when (or (< (vx v) 0)
+			  (>= (vx v) fc-pixels-width)
+			  (< (vy v) 0)
+			  (>= (vy v) fc-pixels-height))
+	(error 'out-of-bounds "(~s, ~s) - fc-pixels (~s, ~s)~n"
+			(vx v) (vy v)
+			fc-pixels-width fc-pixels-height))
+	(vector-set! fc-mapping addr pixels-addr)))
 
   (for ([line (side-addrs s)]
 		[y (in-range (add1 (- (side-end-row s)
@@ -91,6 +99,10 @@
 (map-side main-building-west #(10 0))
 (map-side main-building-south #(20 1))
 (map-side main-building-east #(30 1))
+(map-side main-building-south-street-level #(19 23))
+(map-side futurelab-south #(33 17))
+(map-side futurelab-east #(56 17))
+(map-side futurelab-north #(61 17))
 
 ; (fc-update [download?])
 ; 	download? : bool?, whether downloading data from fc-pixels is required
