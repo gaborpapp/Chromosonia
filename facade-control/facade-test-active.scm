@@ -6,7 +6,7 @@
 (texture-params 0 '(min nearest mag nearest)) ; no bilinear - show the pixels
 
 ; initialize controller
-(fc-init host)
+(fc-init host 8080 'active)
 
 ; the controller sends data in 25 fps, so it's no use
 ; for the rendering to be faster

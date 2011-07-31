@@ -15,6 +15,7 @@
 (define fc-hostname "127.0.0.1")
 (define fc-port 8080)
 (define fc-socket (udp-open-socket))
+(define fc-mode 'passive) ; 'passive or 'active
 
 (define fc-pixels 0)
 (define fc-pixels-width 74)
@@ -27,19 +28,22 @@
 ; colours to be sent
 (define fc-colours (make-vector 1085 #(0 0 0)))
 
-; (fc-init hostname [port 8080])
+; (fc-init hostname [port 8080] [mode 'passive])
 ; 	hostname : string
 ; 	port : integer
-;
+; 	mode : symbol - 'passive or 'active, using pdata or rendering into
+; 					the pixel primitive
 ; Initializes the facade controller.
-(define (fc-init hostname [port 8080])
+(define (fc-init hostname [port 8080] [mode 'passive])
 	(set! fc-hostname hostname)
 	(set! fc-port port)
+	(set! fc-mode mode)
 	(udp-close fc-socket)
 	(set! fc-socket (udp-open-socket))
 
 	(destroy fc-pixels)
-	(set! fc-pixels (build-pixels fc-pixels-width fc-pixels-height #t))
+	(set! fc-pixels (build-pixels fc-pixels-width fc-pixels-height
+								  (if (eq? mode 'active) #t #f)))
 	(with-primitive fc-pixels
 		(scale 0)))
 
@@ -104,14 +108,12 @@
 (map-side futurelab-east #(56 17))
 (map-side futurelab-north #(61 17))
 
-; (fc-update [download?])
-; 	download? : bool?, whether downloading data from fc-pixels is required
-; 				defaults to #t
+; (fc-update)
 ;
 ; Sends the data of fc-pixels to the facade.
 (define (fc-update [download? #t])
  	(with-primitive fc-pixels
-		(when download?
+		(when (eq? fc-mode 'active)
 			(pixels-download))
 		(for ([i (in-range 1085)])
 			 (vector-set! fc-colours i

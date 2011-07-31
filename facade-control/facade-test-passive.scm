@@ -30,16 +30,13 @@
         (pixels-upload))
 
     ; send the contents of fc-pixels to the facade
-    (fc-update #f))
+    (fc-update))
 
 ; if you would like to see the buffer in which the rendering goes
 
-; FIXME: pdata upload
-;
 ; this shows the originally hidden fc-pixels primitive and flips it vertically, so
 ; the top-left corner on the screen matches the top-left corner of the mapping
 (with-primitive fc-pixels
-    (pixels-renderer-activate #f)
     (identity)
     (scale (vector fc-pixels-width (- fc-pixels-height) 1))
     (hint-cull-ccw)
