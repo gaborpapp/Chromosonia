@@ -492,7 +492,7 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
   MZ_GC_REG();
 
   pthread_mutex_init(&mutex, NULL);
-  menv=scheme_primitive_module(scheme_intern_symbol("fluxus-sonotopy"), env);
+  menv=scheme_primitive_module(scheme_intern_symbol("chromosonia-audio"), env);
 
   scheme_add_global("init-sonotopy",
 		    scheme_make_prim_w_arity(init_sonotopy, "init-sonotopy", 0, 1), menv);
