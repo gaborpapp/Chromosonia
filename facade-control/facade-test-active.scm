@@ -6,7 +6,7 @@
 (texture-params 0 '(min nearest mag nearest)) ; no bilinear - show the pixels
 
 ; initialize controller
-(fc-init host)
+(fc-init host 8080 'active)
 
 ; the controller sends data in 25 fps, so it's no use
 ; for the rendering to be faster
@@ -15,7 +15,8 @@
 (define (mainloop)
     ; the rendering goes into the fc-pixels pixel primitive
     (with-pixels-renderer fc-pixels
-        (clear-colour #(1 0 0))
+        (clear-colour #(0 0 0))
+        (colour #(1 0 0))
         (identity)
         ; draw two rotating cubes
         (for ([pos '(#(-6.5 -4.5 0) #(-1 -3 0))])
