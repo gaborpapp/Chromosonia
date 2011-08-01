@@ -1,4 +1,5 @@
 #include <sndfile.h>
+#include <pthread.h>
 
 class EchonestInterface {
 public:
@@ -6,10 +7,16 @@ public:
   void feedAudio(const float *, unsigned long numFrames);
 
 private:
-  void createCodegenBuffer();
+  void processCodegenBufferInNewThread();
+  static void* processCodegenBufferStartThread(void *obj) {
+    reinterpret_cast<EchonestInterface *>(obj)->processCodegenBuffer();
+    return NULL;
+  }
+  void processCodegenBuffer();
+  void startCodegenBuffering();
   void appendToCodegenBuffer(const float *, unsigned long numFrames);
   void executeCodegen();
-  void deleteCodegenBuffer();
+  void stopCodegenBuffering();
 
   int sampleRate;
   unsigned int codegenNumFrames;
@@ -17,4 +24,7 @@ private:
   SNDFILE *codegenBuffer;
   char bufferFilename[1024];
   int bufferCount;
+  pthread_t processingThread;
+  bool buffering;
+  pthread_mutex_t mutex;
 };
