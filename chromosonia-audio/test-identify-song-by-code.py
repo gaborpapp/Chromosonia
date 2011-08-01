@@ -17,7 +17,9 @@ def identify(code, version):
     kwargs['code'] = code
     query_obj = {"code":code,
                  "tag":0,
-                 "metadata": {"version":4.12} # this seems to be required to get a result - I don't know why
+                 "metadata": {"version":4.12, # this seems to be required to get a result - I don't know why
+                              "samplerate": 44100,
+                              "samples_decoded": 882000}
                  }
     data = {'query':json.dumps(query_obj)}
     print "query_obj=%s" % query_obj

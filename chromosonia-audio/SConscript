@@ -8,7 +8,7 @@ senv = env.Clone()
 
 Target = "chromosonia-audio_ss"
 
-Libs =  Split("jack fftw3 sonotopy")
+Libs =  Split("jack fftw3 sonotopy codegen")
 
 Frameworks = []
 
@@ -39,6 +39,7 @@ if not GetOption('clean'):
 
 Source = Split("src/ChromosoniaAudio.cpp \
 		src/SonotopyInterface.cpp \
+		src/EchonestInterface.cpp \
                 src/SchemeHelper.cpp") + \
 		[MZDYN]
 		

@@ -18,6 +18,7 @@
 #include <iostream>
 #include <jack/jack.h>
 #include "SonotopyInterface.h"
+#include "EchonestInterface.hpp"
 #include "SchemeHelper.h"
 #include <pthread.h>
 
@@ -29,6 +30,7 @@ jack_client_t *jackClient = NULL;
 bool jackActivated = false;
 jack_port_t *jackInputPort;
 SonotopyInterface *sonotopyInterface = NULL;
+EchonestInterface *echonestInterface = NULL;
 pthread_mutex_t mutex;
 
 int jackProcess(jack_nframes_t num_frames, void *arg) {
@@ -36,6 +38,7 @@ int jackProcess(jack_nframes_t num_frames, void *arg) {
     (jack_default_audio_sample_t *) jack_port_get_buffer(jackInputPort, num_frames);
   pthread_mutex_lock(&mutex);
   sonotopyInterface->feedAudio((float *)buffer, num_frames);
+  echonestInterface->feedAudio((float *)buffer, num_frames);
   pthread_mutex_unlock(&mutex);
   return 0;
 }
@@ -45,6 +48,10 @@ void jackShutdown(void *arg) {
   if(sonotopyInterface != NULL) {
     delete sonotopyInterface;
     sonotopyInterface = NULL;
+  }
+  if(echonestInterface != NULL) {
+    delete echonestInterface;
+    echonestInterface = NULL;
   }
 }
 
@@ -57,7 +64,7 @@ void jackShutdown(void *arg) {
 // can be interpreted as e.g. shapes, colors or motion parameters.
 // fluxus-sonotopy acts as a layer between Jack, Sonotopy and Fluxus.
 // Example:
-// (init-sonotopy)
+// (init-audio)
 // (require racket/math)
 // (define (render)
 //  (rotate (vector 90 (* 360 (/ (vane) (* pi 2))) 0))
@@ -68,22 +75,22 @@ void jackShutdown(void *arg) {
 // EndSectionDoc
 
 // StartFunctionDoc-en
-// init-sonotopy jackport-string
+// init-audio jackport-string
 // Returns: void
 // Description:
 // Initializes fluxus-sonotopy by connecting to jack. jackport is an
 // optional name specifying a port to connect to; if unspecified, the
 // user needs to connect manually.
 // Example:
-// (init-sonotopy "system:capture_1")
+// (init-audio "system:capture_1")
 // EndFunctionDoc
 
-Scheme_Object *init_sonotopy(int argc, Scheme_Object **argv) {
+Scheme_Object *init_audio(int argc, Scheme_Object **argv) {
   bool connect = false;
   string jackSourcePort;
   DECL_ARGV();
   if(argc == 1) {
-    ArgCheck("init-sonotopy", "s", argc, argv);
+    ArgCheck("init-audio", "s", argc, argv);
     jackSourcePort = StringFromScheme(argv[0]);
     connect = true;
   }
@@ -106,6 +113,7 @@ Scheme_Object *init_sonotopy(int argc, Scheme_Object **argv) {
   if(jackClient != NULL && sonotopyInterface == NULL) {
     sonotopyInterface = new SonotopyInterface(jack_get_sample_rate(jackClient),
 					      jack_get_buffer_size(jackClient));
+    echonestInterface = new EchonestInterface(jack_get_sample_rate(jackClient));
     if(!jackActivated) {
       if(jack_activate(jackClient) == 0) {
 	jackActivated = true;
@@ -477,6 +485,7 @@ Scheme_Object *reset_sonotopy(int argc, Scheme_Object **argv) {
 }
 
 
+
 /////////////////////
 
 #ifdef STATIC_LINK
@@ -494,8 +503,8 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
   pthread_mutex_init(&mutex, NULL);
   menv=scheme_primitive_module(scheme_intern_symbol("chromosonia-audio"), env);
 
-  scheme_add_global("init-sonotopy",
-		    scheme_make_prim_w_arity(init_sonotopy, "init-sonotopy", 0, 1), menv);
+  scheme_add_global("init-audio",
+		    scheme_make_prim_w_arity(init_audio, "init-audio", 0, 1), menv);
   scheme_add_global("vane",
 		    scheme_make_prim_w_arity(vane, "vane", 0, 0), menv);
   scheme_add_global("beat",
