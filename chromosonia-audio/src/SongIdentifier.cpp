@@ -6,6 +6,7 @@
 
 SongIdentifier::SongIdentifier() {
   getSongIdScriptLocation();
+  danceability = -1;
 }
 
 bool SongIdentifier::identify(const char *filename) {
@@ -19,8 +20,10 @@ bool SongIdentifier::identify(const char *filename) {
     return false;
   }
   char line[1024];
-  while(fgets(line, sizeof(line), f))
+  while(fgets(line, sizeof(line), f)) {
+    fprintf(stderr, "%s", line);
     processLine(line);
+  }
   pclose(f);
   return true;
 }
@@ -40,6 +43,8 @@ void SongIdentifier::processLine(char *line) {
       artist = value;
     else if(strcmp(attr, "song") == 0)
       song = value;
+    else if(strcmp(attr, "danceability") == 0)
+      danceability = atof(value);
   }
 }
 

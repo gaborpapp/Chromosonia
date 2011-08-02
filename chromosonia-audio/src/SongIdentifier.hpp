@@ -9,7 +9,7 @@ public:
   bool identify(const char *filename);
   std::string getArtist() { return artist; }
   std::string getSong() { return song; }
-  float getDanceability();
+  float getDanceability() { return danceability; }
 
 private:
   void executeCodegen();

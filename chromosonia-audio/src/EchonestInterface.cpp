@@ -15,6 +15,10 @@ EchonestInterface::EchonestInterface(int _sampleRate, float codegenDuration) {
   startCodegenBuffering();
 }
 
+float EchonestInterface::getDanceability() {
+  return songIdentifier->getDanceability();
+}
+
 void EchonestInterface::startCodegenBuffering() {
   codegenCurrentNumFrames = 0;
   sprintf(bufferFilename, "%s%04d.wav", CODEGEN_TEMP_FILENAME, bufferCount++);

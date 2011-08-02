@@ -24,8 +24,8 @@ def lookup(file):
         print "Got result:", result
         if len(result):
             song = result[0]
-            print "artist=%s" % song.artist_name
-            print "song=%s" % song.title
+            print "artist=%s" % song.artist_name.encode('ascii', 'replace')
+            print "song=%s" % song.title.encode('ascii', 'replace')
             summary = song.get_audio_summary()
             for attribute in summary:
                 print "%s=%s" % (attribute, summary[attribute])

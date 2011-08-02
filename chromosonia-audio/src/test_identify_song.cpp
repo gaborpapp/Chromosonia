@@ -9,8 +9,10 @@ int main(int argc, char **argv) {
   }
   SongIdentifier identifier;
   if(identifier.identify(argv[1])) {
+    printf("\nRESULTS\n----------------\n");
     printf("Artist: '%s'\n", identifier.getArtist().c_str());
     printf("Song: '%s'\n", identifier.getSong().c_str());
+    printf("Danceability: '%f'\n", identifier.getDanceability());
   }
   else
     printf("failed to identify song\n");

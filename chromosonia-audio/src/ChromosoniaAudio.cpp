@@ -486,6 +486,15 @@ Scheme_Object *reset_sonotopy(int argc, Scheme_Object **argv) {
 
 
 
+
+Scheme_Object *danceability(int argc, Scheme_Object **argv) {
+  float danceability = 0.0f;
+  if(echonestInterface != NULL)
+    danceability = echonestInterface->getDanceability();
+  return scheme_make_float(danceability);
+}
+
+
 /////////////////////
 
 #ifdef STATIC_LINK
@@ -529,6 +538,8 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
 		    scheme_make_prim_w_arity(path_cursor, "path-cursor", 0, 0), menv);
   scheme_add_global("reset-sonotopy",
 		    scheme_make_prim_w_arity(reset_sonotopy, "reset-sonotopy", 0, 0), menv);
+  scheme_add_global("danceability",
+		    scheme_make_prim_w_arity(danceability, "danceability", 0, 0), menv);
 
   scheme_finish_primitive_module(menv);
   MZ_GC_UNREG();
