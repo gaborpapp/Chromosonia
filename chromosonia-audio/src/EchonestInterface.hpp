@@ -1,7 +1,7 @@
 #include <sndfile.h>
 #include <pthread.h>
 
-#define songIdScript "identify_song.sh"
+#define songIdScript "identify_song.py"
 #define _songIdScriptLocations {"", "addons/chromosonia-audio/"}
 
 class EchonestInterface {

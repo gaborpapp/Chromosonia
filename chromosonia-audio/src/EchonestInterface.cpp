@@ -61,7 +61,7 @@ void EchonestInterface::executeCodegen() {
   sf_close(codegenBuffer);
   fprintf(stderr, "executing codegen...\n");
   char command[1024];
-  sprintf(command, "/bin/sh %s%s %s", songIdScriptLocation, songIdScript, bufferFilename);
+  sprintf(command, "%s%s %s", songIdScriptLocation, songIdScript, bufferFilename);
   fprintf(stderr, "codegen command: %s\n", command);
   if(system(command) == -1)
     fprintf(stderr, "WARNING: failed to execute command\n");
