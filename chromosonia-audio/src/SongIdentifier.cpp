@@ -2,21 +2,45 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <stdio.h>
+#include <string.h>
 
 SongIdentifier::SongIdentifier() {
   getSongIdScriptLocation();
 }
 
 bool SongIdentifier::identify(const char *filename) {
-  fprintf(stderr, "executing codegen...\n");
+  fprintf(stderr, "executing song identification script...\n");
   char command[1024];
   sprintf(command, "%s%s %s", songIdScriptLocation, songIdScript, filename);
-  fprintf(stderr, "codegen command: %s\n", command);
-  if(system(command) == -1) {
+  fprintf(stderr, "command: %s\n", command);
+  FILE *f = popen(command, "r");
+  if(f == NULL) {
     fprintf(stderr, "WARNING: failed to execute command\n");
     return false;
   }
+  char line[1024];
+  while(fgets(line, sizeof(line), f))
+    processLine(line);
+  pclose(f);
   return true;
+}
+
+void SongIdentifier::processLine(char *line) {
+  char *p = strchr(line, '=');
+  char *attr, *value;
+  if(p) {
+    *p = '\0';
+    attr = line;
+    value = p + 1;
+    p = strchr(value, '\r');
+    if(p) *p = '\0';
+    p = strchr(value, '\n');
+    if(p) *p = '\0';
+    if(strcmp(attr, "artist") == 0)
+      artist = value;
+    else if(strcmp(attr, "song") == 0)
+      song = value;
+  }
 }
 
 void SongIdentifier::getSongIdScriptLocation() {
@@ -33,7 +57,8 @@ void SongIdentifier::getSongIdScriptLocation() {
     }
   }
   if(songIdScriptLocation == NULL) {
-    fprintf(stderr, "WARNING: failed to locate song identification script! looked in:\n");
+    fprintf(stderr, "WARNING: failed to locate song identification script '%s'! looked in:\n",
+	    songIdScript);
     for(int i = 0; i < numLocations; i++)
       fprintf(stderr, "  %s\n", songIdScriptLocations[i]);
   }
