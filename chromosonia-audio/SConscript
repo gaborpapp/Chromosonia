@@ -8,7 +8,7 @@ senv = env.Clone()
 
 Target = "chromosonia-audio_ss"
 
-Libs =  Split("jack fftw3 sonotopy codegen")
+Libs =  Split("jack fftw3 sonotopy")
 
 Frameworks = []
 
