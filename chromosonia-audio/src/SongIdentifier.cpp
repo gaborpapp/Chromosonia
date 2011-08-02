@@ -6,7 +6,7 @@
 
 SongIdentifier::SongIdentifier() {
   getSongIdScriptLocation();
-  danceability = -1;
+  danceability = 0;
 }
 
 bool SongIdentifier::identify(const char *filename) {
