@@ -1,0 +1,113 @@
+###############################################################
+# SConscript for chromosonia-audio
+#
+# This is the main RACKET module for the fluxus chromosonia functions
+
+import sys, os
+
+Target = "chromosonia-audio_ss"
+
+Source = Split("src/ChromosoniaAudio.cpp \
+		src/SonotopyInterface.cpp \
+		src/EchonestInterface.cpp \
+		src/SongIdentifier.cpp \
+		src/SchemeHelper.cpp")
+
+# build environment
+env = Environment()
+
+# fluxus version
+MajorVersion = "0"
+MinorVersion = "18"
+FluxusVersion = MajorVersion + MinorVersion
+
+IncludePaths = ['/usr/local/include']
+
+Libs =  Split("jack fftw3 sonotopy")
+LibPaths = ['/usr/local/lib']
+
+Frameworks = []
+FrameworkPaths = []
+
+if sys.platform == 'darwin':
+	file = os.popen('dirname "`which racket`"')
+	RacketBin = file.read()
+	file.close()
+	Prefix = ARGUMENTS.get('Prefix','/opt/local')
+	RacketPrefix = ARGUMENTS.get('RacketPrefix', RacketBin[:-5])
+	RacketInclude = ARGUMENTS.get('RacketInclude', RacketPrefix + "/include")
+	RacketLib = ARGUMENTS.get('RacketLib', RacketPrefix + "/lib")
+	Frameworks += ['Racket']
+	FrameworkPaths += [RacketLib]
+	IncludePaths += ['/opt/local/include']
+	LibPaths += ['/opt/local/lib']
+elif sys.platform == 'win32':
+	Prefix = ARGUMENTS.get('Prefix','c:/Program Files/Fluxus')
+	RacketPrefix = ARGUMENTS.get('RacketPrefix','c:/Program Files/Racket')
+	RacketInclude = ARGUMENTS.get('RacketInclude', RacketPrefix + "/include")
+	RacketLib = ARGUMENTS.get('RacketLib', RacketPrefix + "/lib")
+else:
+	Prefix = ARGUMENTS.get('Prefix','/usr/local')
+	RacketPrefix = ARGUMENTS.get('RacketPrefix','/usr/local')
+	RacketInclude = ARGUMENTS.get('RacketInclude', RacketPrefix + "/include/racket")
+	RacketLib = ARGUMENTS.get('RacketLib', RacketPrefix + "/lib/racket")
+
+# check installed libraries
+LibList = [["jack", "jack/jack.h"],
+		["sndfile", "sndfile.h"],
+		["fftw3", "fftw3.h"],
+		['sonotopy', 'sonotopy/sonotopy.hpp']]
+
+IncludePaths += [RacketInclude]
+LibPaths += [RacketLib]
+
+env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME'] = 1
+env.Append(CCFLAGS = '-DMZ_PRECISE_GC')
+MZDYN = RacketLib + '/mzdyn3m.o'
+
+Source += [MZDYN]
+
+# configure environment
+CCFLAGS = '-Wall -Wno-unknown-pragmas -ggdb2 -O3'
+LINKFLAGS = ''
+
+if sys.platform == 'darwin':
+	CCFLAGS += ' -arch i386'
+	LINKFLAGS += ' -arch i386'
+
+env.Append(CCFLAGS = CCFLAGS)
+env.Append(CPPPATH = IncludePaths)
+env.Append(FRAMEWORKS = Frameworks)
+env.Append(FRAMEWORKPATH = FrameworkPaths)
+env.Append(LIBS = Libs)
+env.Append(LINKFLAGS = LINKFLAGS)
+env.Append(LIBPATH = LibPaths)
+
+if not GetOption('clean'):
+	print 'Checking requirements for', Target, '...'
+	conf = Configure(env)
+	for (lib, headers) in LibList:
+		if not conf.CheckLibWithHeader(lib, headers, 'C++'):
+			print "WARNING: '%s' must be installed!" % (lib)
+			Requirements = False
+
+	env = conf.Finish()
+	# ... but we shouldn't forget to add them to LIBS manually
+	Libs += [rec[0] for rec in LibList]
+
+file = os.popen("racket -em \"(begin (display (path->string (system-library-subpath)))(exit))\"")
+archpath = file.read()
+file.close()
+
+InstallLocation = Prefix + '/lib/fluxus-' + FluxusVersion
+BinaryInstallLocation = InstallLocation + '/compiled/native/' + archpath
+
+output = env.SharedLibrary(source = Source, 
+				  target = Target,
+				  LIBS = Libs,
+				  FRAMEWORKS = Frameworks,
+				  SHLIBPREFIX = '')
+
+env.Install(BinaryInstallLocation, output)
+env.Alias('install', InstallLocation)
+
