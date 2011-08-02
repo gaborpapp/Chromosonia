@@ -40,6 +40,7 @@ if not GetOption('clean'):
 Source = Split("src/ChromosoniaAudio.cpp \
 		src/SonotopyInterface.cpp \
 		src/EchonestInterface.cpp \
+		src/SongIdentifier.cpp \
                 src/SchemeHelper.cpp") + \
 		[MZDYN]
 		

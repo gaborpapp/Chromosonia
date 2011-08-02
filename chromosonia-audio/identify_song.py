@@ -8,7 +8,7 @@ import sys
 import os
 
 import pyechonest.config as config
-import pyechonest.song as song
+import pyechonest.song
 
 #config.CODEGEN_BINARY_OVERRIDE = os.path.abspath("../echoprint-codegen")
 config.CODEGEN_BINARY_OVERRIDE = "/usr/local/bin/echoprint-codegen" # Alex: for some reason, an override is needed even for this default install location
@@ -16,15 +16,19 @@ config.ECHO_NEST_API_KEY='S930OYGGEBE2MASJH' # Alex' API key
 
 def lookup(file):
     # Note that song.identify reads just the first 30 seconds of the file
-    fp = song.util.codegen(file)
+    fp = pyechonest.song.util.codegen(file)
     #print "fp=%s" % fp
     if len(fp) and "code" in fp[0]:
         # The version parameter to song/identify indicates the use of echoprint
-        result = song.identify(query_obj=fp, version="4.11")
+        result = pyechonest.song.identify(query_obj=fp, version="4.11")
         print "Got result:", result
         if len(result):
-            print "Artist: %s (%s)" % (result[0].artist_name, result[0].artist_id)
-            print "Song: %s (%s)" % (result[0].title, result[0].id)
+            song = result[0]
+            print "Artist: %s (%s)" % (song.artist_name, song.artist_id)
+            print "Song: %s (%s)" % (song.title, song.id)
+            summary = song.get_audio_summary()
+            for attribute in summary:
+                print "%s=%s" % (attribute, summary[attribute])
         else:
             print "No match. This track may not be in the database yet."
     else:

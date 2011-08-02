@@ -1,8 +1,6 @@
+#include "SongIdentifier.hpp"
 #include <sndfile.h>
 #include <pthread.h>
-
-#define songIdScript "identify_song.py"
-#define _songIdScriptLocations {"", "addons/chromosonia-audio/"}
 
 class EchonestInterface {
 public:
@@ -18,10 +16,7 @@ private:
   void processCodegenBuffer();
   void startCodegenBuffering();
   void appendToCodegenBuffer(const float *, unsigned long numFrames);
-  void executeCodegen();
   void stopCodegenBuffering();
-  void getSongIdScriptLocation();
-  bool fileExists(const char *);
 
   int sampleRate;
   unsigned int codegenNumFrames;
@@ -32,5 +27,5 @@ private:
   pthread_t processingThread;
   bool buffering;
   pthread_mutex_t mutex;
-  const char *songIdScriptLocation;
+  SongIdentifier *songIdentifier;
 };

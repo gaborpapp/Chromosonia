@@ -1,9 +1,7 @@
 #include "EchonestInterface.hpp"
 #include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <sys/stat.h>
 
 #define CODEGEN_TEMP_FILENAME "/tmp/codegen_buffer"
 
@@ -13,7 +11,7 @@ EchonestInterface::EchonestInterface(int _sampleRate, float codegenDuration) {
   bufferCount = 0;
   pthread_mutex_init(&mutex, NULL);
   buffering = false;
-  getSongIdScriptLocation();
+  songIdentifier = new SongIdentifier();
   startCodegenBuffering();
 }
 
@@ -57,41 +55,6 @@ void EchonestInterface::appendToCodegenBuffer(const float *buffer, unsigned long
   codegenCurrentNumFrames += numFrames;
 }
 
-void EchonestInterface::executeCodegen() {
-  sf_close(codegenBuffer);
-  fprintf(stderr, "executing codegen...\n");
-  char command[1024];
-  sprintf(command, "%s%s %s", songIdScriptLocation, songIdScript, bufferFilename);
-  fprintf(stderr, "codegen command: %s\n", command);
-  if(system(command) == -1)
-    fprintf(stderr, "WARNING: failed to execute command\n");
-}
-
-void EchonestInterface::getSongIdScriptLocation() {
-  songIdScriptLocation = NULL;
-  const char *songIdScriptLocations[] = _songIdScriptLocations;
-  char filename[1024];
-  int numLocations = sizeof(songIdScriptLocations) / sizeof(char*);
-  for(int i = 0; i < numLocations; i++) {
-    sprintf(filename, "%s%s", songIdScriptLocations[i], songIdScript);
-    if(fileExists(filename)) {
-      songIdScriptLocation = songIdScriptLocations[i];
-      fprintf(stderr, "located song identification script in %s\n", songIdScriptLocation);
-      return;
-    }
-  }
-  if(songIdScriptLocation == NULL) {
-    fprintf(stderr, "WARNING: failed to locate song identification script! looked in:\n");
-    for(int i = 0; i < numLocations; i++)
-      fprintf(stderr, "  %s\n", songIdScriptLocations[i]);
-  }
-}
-
-bool EchonestInterface::fileExists(const char *filename) {
-  struct stat stFileInfo;
-  return stat(filename, &stFileInfo) == 0;
-}
-
 void EchonestInterface::stopCodegenBuffering() {
   unlink(bufferFilename);
 }
@@ -102,7 +65,8 @@ void EchonestInterface::processCodegenBufferInNewThread() {
 
 void EchonestInterface::processCodegenBuffer() {
   pthread_mutex_lock(&mutex);
-  executeCodegen();
+  sf_close(codegenBuffer);
+  songIdentifier->identify(bufferFilename);
   stopCodegenBuffering();
   startCodegenBuffering();
   pthread_mutex_unlock(&mutex);
