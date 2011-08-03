@@ -52,6 +52,8 @@ else:
 	RacketInclude = ARGUMENTS.get('RacketInclude', RacketPrefix + "/include/racket")
 	RacketLib = ARGUMENTS.get('RacketLib', RacketPrefix + "/lib/racket")
 
+DataLocation = Prefix + "/share/fluxus-"+FluxusVersion
+
 # check installed libraries
 LibList = [["jack", "jack/jack.h"],
 		["sndfile", "sndfile.h"],
@@ -60,6 +62,13 @@ LibList = [["jack", "jack/jack.h"],
 
 IncludePaths += [RacketInclude]
 LibPaths += [RacketLib]
+
+
+ResourcesLocation = DataLocation + "/" + "chromosonia-resources"
+env.Append(CCFLAGS=" -DRESOURCES_LOCATION="+"\"\\\""+ResourcesLocation+"\"\\\"")
+
+Resources = ["resources/identify_song.py"]
+
 
 env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME'] = 1
 env.Append(CCFLAGS = '-DMZ_PRECISE_GC')
@@ -109,5 +118,5 @@ output = env.SharedLibrary(source = Source,
 				  SHLIBPREFIX = '')
 
 env.Install(BinaryInstallLocation, output)
-env.Alias('install', InstallLocation)
-
+env.Install(ResourcesLocation, Resources)
+env.Alias('install', [InstallLocation, ResourcesLocation])

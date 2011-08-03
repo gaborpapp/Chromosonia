@@ -12,7 +12,7 @@ SongIdentifier::SongIdentifier() {
 bool SongIdentifier::identify(const char *filename) {
   fprintf(stderr, "executing song identification script...\n");
   char command[1024];
-  sprintf(command, "%s%s %s", songIdScriptLocation, songIdScript, filename);
+  sprintf(command, "%s/%s %s", songIdScriptLocation, songIdScript, filename);
   fprintf(stderr, "command: %s\n", command);
   FILE *f = popen(command, "r");
   if(f == NULL) {
@@ -54,7 +54,7 @@ void SongIdentifier::getSongIdScriptLocation() {
   char filename[1024];
   int numLocations = sizeof(songIdScriptLocations) / sizeof(char*);
   for(int i = 0; i < numLocations; i++) {
-    sprintf(filename, "%s%s", songIdScriptLocations[i], songIdScript);
+    sprintf(filename, "%s/%s", songIdScriptLocations[i], songIdScript);
     if(fileExists(filename)) {
       songIdScriptLocation = songIdScriptLocations[i];
       fprintf(stderr, "located song identification script in %s\n", songIdScriptLocation);

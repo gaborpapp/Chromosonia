@@ -1,7 +1,11 @@
 #include <string>
 
 #define songIdScript "identify_song.py"
-#define _songIdScriptLocations {"./", "addons/chromosonia-audio/"}
+#ifdef RESOURCES_LOCATION
+#define _songIdScriptLocations {".", RESOURCES_LOCATION}
+#else
+#define _songIdScriptLocations {"."}
+#endif
 
 class SongIdentifier {
 public:
