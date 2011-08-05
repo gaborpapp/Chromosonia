@@ -4,7 +4,7 @@
 
 class EchonestInterface {
 public:
-  EchonestInterface(int sampleRate, float codegenDuration = 30);
+  EchonestInterface(int sampleRate, float codegenDuration = 20);
   void feedAudio(const float *, unsigned long numFrames);
   float getDanceability();
 

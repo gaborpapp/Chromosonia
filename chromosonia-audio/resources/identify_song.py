@@ -29,6 +29,10 @@ def lookup(file):
             summary = song.get_audio_summary()
             for attribute in summary:
                 print "%s=%s" % (attribute, summary[attribute])
+
+            score = song.score
+            code_count = fp[0]["code_count"]
+            print "score=%d code_count=%d accuracy=%f" % (score, code_count, float(score)/code_count)
         else:
             print "No match. This track may not be in the database yet."
     else:
