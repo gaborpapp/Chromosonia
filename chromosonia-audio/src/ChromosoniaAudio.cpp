@@ -429,6 +429,109 @@ Scheme_Object *grid_pattern(int argc, Scheme_Object **argv) {
 
 
 // StartFunctionDoc-en
+// disjoint-grid-layout grid-size-vector nodes-vector
+// Returns: grid-size-vector
+// Description:
+// Sets the size and nodal layout of the sonotopic disjoint grid. The first vector specifies the width and height. The second vector contains the x and y value for each node in the topology.
+// Example:
+// (disjoint-grid-size (vector (10 10 0)) #(#(1 1) #(1 2) #(1 3) #(2 1)))
+// EndFunctionDoc
+
+Scheme_Object *disjoint_grid_layout(int argc, Scheme_Object **argv) {
+  Scheme_Object *result = NULL;
+  MZ_GC_DECL_REG(2);
+  MZ_GC_VAR_IN_REG(0, argv);
+  MZ_GC_VAR_IN_REG(1, result);
+  MZ_GC_REG();
+  result = scheme_make_vector(3, scheme_void);
+
+  if(argc == 2) {
+    //ArgCheck("disjoint-grid-layout", "vv", argc, argv); // doesn't handle arg 2
+    vector<float> sizeVector = SchemeHelper::FloatVectorFromScheme(argv[0]);
+    if(sizeVector.size() == 2 || sizeVector.size() == 3) {
+      Scheme_Object *schemeNodes = argv[1];
+      vector<DisjointGridTopology::Node> nodes;
+      for (int n=0; n<SCHEME_VEC_SIZE(schemeNodes); n++) {
+	Scheme_Object *nodeV = SCHEME_VEC_ELS(schemeNodes)[n];
+	int s = SCHEME_VEC_SIZE(nodeV);
+	if(s == 2) {
+	  if(SCHEME_EXACT_INTEGERP(SCHEME_VEC_ELS(nodeV)[0]) &&
+	     SCHEME_EXACT_INTEGERP(SCHEME_VEC_ELS(nodeV)[1])) {
+	    int x = IntFromScheme(SCHEME_VEC_ELS(nodeV)[0]);
+	    int y = IntFromScheme(SCHEME_VEC_ELS(nodeV)[1]);
+	    nodes.push_back(DisjointGridTopology::Node(x, y));
+	  }
+	}
+      }
+      if(sonotopyInterface != NULL) {
+	pthread_mutex_lock(&mutex);
+	sonotopyInterface->setDisjointGridMapLayout(sizeVector[0],
+						    sizeVector[1],
+						    nodes);
+	pthread_mutex_unlock(&mutex);
+      }
+    }
+  }
+
+  float width = 0, height = 0;
+  if(sonotopyInterface != NULL) {
+    width = sonotopyInterface->getDisjointGridMapWidth();
+    height = sonotopyInterface->getDisjointGridMapHeight();
+  }
+
+  SCHEME_VEC_ELS(result)[0] = scheme_make_integer_value(width);
+  SCHEME_VEC_ELS(result)[1] = scheme_make_integer_value(height);
+  SCHEME_VEC_ELS(result)[2] = scheme_make_integer_value(0);
+
+  MZ_GC_UNREG();
+  return result;
+}
+
+// StartFunctionDoc-en
+// disjoint-grid-pattern
+// Returns: vector of vector of float
+// Description:
+// Similar to grid-pattern but for the disjoint grid. Non-nodal map content has zero activation.
+// EndFunctionDoc
+
+Scheme_Object *disjoint_grid_pattern(int argc, Scheme_Object **argv) {
+  Scheme_Object *result = NULL;
+  Scheme_Object *tmprow = NULL;
+  Scheme_Object *tmpnode = NULL;
+  MZ_GC_DECL_REG(3);
+  MZ_GC_VAR_IN_REG(0, result);
+  MZ_GC_VAR_IN_REG(1, tmprow);
+  MZ_GC_VAR_IN_REG(2, tmpnode);
+  MZ_GC_REG();
+
+  if(sonotopyInterface != NULL) {
+    unsigned int gridMapWidth = sonotopyInterface->getDisjointGridMapWidth();
+    unsigned int gridMapHeight = sonotopyInterface->getDisjointGridMapHeight();
+
+    result = scheme_make_vector(gridMapHeight, scheme_void);
+
+    pthread_mutex_lock(&mutex);
+    const SOM::ActivationPattern *activationPattern =
+      sonotopyInterface->getDisjointGridMapActivationPattern();
+    SOM::ActivationPattern::const_iterator activationPatternIterator =
+      activationPattern->begin();
+    for(unsigned int y = 0; y < gridMapHeight; y++) {
+      tmprow = scheme_make_vector(gridMapWidth, scheme_void);
+      for(unsigned int x = 0; x < gridMapWidth; x++) {
+	tmpnode = scheme_make_float(*activationPatternIterator++);
+	SCHEME_VEC_ELS(tmprow)[x] = tmpnode;
+      }
+      SCHEME_VEC_ELS(result)[y] = tmprow;
+    }
+    pthread_mutex_unlock(&mutex);
+  }
+
+  MZ_GC_UNREG();
+  return result;
+}
+
+
+// StartFunctionDoc-en
 // path-cursor
 // Returns: vector
 // Description:
@@ -534,6 +637,10 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
 		    scheme_make_prim_w_arity(grid_pattern, "grid-pattern", 0, 0), menv);
   scheme_add_global("grid-pattern-node",
 		    scheme_make_prim_w_arity(grid_pattern_node, "grid-pattern-node", 2, 2), menv);
+  scheme_add_global("disjoint-grid-layout",
+		    scheme_make_prim_w_arity(disjoint_grid_layout, "disjoint-grid-layout", 2, 2), menv);
+  scheme_add_global("disjoint-grid-pattern",
+		    scheme_make_prim_w_arity(disjoint_grid_pattern, "disjoint-grid-pattern", 0, 0), menv);
   scheme_add_global("path-cursor",
 		    scheme_make_prim_w_arity(path_cursor, "path-cursor", 0, 0), menv);
   scheme_add_global("reset-sonotopy",

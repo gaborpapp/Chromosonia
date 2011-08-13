@@ -17,6 +17,7 @@
 #include "SonotopyInterface.h"
 
 using namespace sonotopy;
+using namespace std;
 
 SonotopyInterface::SonotopyInterface(int sampleRate, int bufferSize) {
   audioParameters.sampleRate = sampleRate;
@@ -35,6 +36,7 @@ SonotopyInterface::SonotopyInterface(int sampleRate, int bufferSize) {
   gridMapWidth = gridMapParameters.gridWidth;
   gridMapHeight = gridMapParameters.gridHeight;
 
+  disjointGridMap = NULL;
   waveformCircularBuffer = NULL;
   waveformBuffer = NULL;
   numWaveformFrames = 0;
@@ -58,6 +60,8 @@ void SonotopyInterface::feedAudio(const float *buffer, unsigned long numFrames) 
   beatTracker->feedFeatureVector(spectrumBinDivider->getBinValues());
   circleMap->feedAudio(buffer, numFrames);
   gridMap->feedAudio(buffer, numFrames);
+  if(disjointGridMap)
+    disjointGridMap->feedAudio(buffer, numFrames);
   if(waveformCircularBuffer != NULL) {
     waveformCircularBuffer->write(numFrames, buffer);
     waveformCircularBuffer->moveReadHead(numFrames);
@@ -143,6 +147,28 @@ float SonotopyInterface::getGridMapActivation(unsigned int x, unsigned int y) {
 
 void SonotopyInterface::getGridCursor(float &x, float &y) {
   gridMap->getCursor(x, y);
+}
+
+void SonotopyInterface::setDisjointGridMapLayout(unsigned int width,
+						 unsigned int height,
+						 const vector<DisjointGridTopology::Node> &nodes) {
+  if(disjointGridMap)
+    delete disjointGridMap;
+  disjointGridMapWidth = disjointGridMapParameters.gridWidth = width;
+  disjointGridMapHeight = disjointGridMapParameters.gridHeight = height;
+  disjointGridMap = new DisjointGridMap(audioParameters, disjointGridMapParameters, nodes);
+}
+
+unsigned int SonotopyInterface::getDisjointGridMapWidth() {
+  return disjointGridMapWidth;
+}
+
+unsigned int SonotopyInterface::getDisjointGridMapHeight() {
+  return disjointGridMapHeight;
+}
+
+const SOM::ActivationPattern* SonotopyInterface::getDisjointGridMapActivationPattern() {
+  return disjointGridMap->getActivationPattern();
 }
 
 void SonotopyInterface::resetAdaptations() {

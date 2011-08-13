@@ -30,9 +30,14 @@ class SonotopyInterface {
   const float *getWaveformBuffer();
   float getGridMapActivation(unsigned int x, unsigned int y);
   const sonotopy::SOM::ActivationPattern* getGridMapActivationPattern();
+  const sonotopy::SOM::ActivationPattern* getDisjointGridMapActivationPattern();
   unsigned int getGridMapWidth();
   unsigned int getGridMapHeight();
+  unsigned int getDisjointGridMapWidth();
+  unsigned int getDisjointGridMapHeight();
   void setGridMapSize(unsigned int width, unsigned int height);
+  void setDisjointGridMapLayout(unsigned int width, unsigned int height,
+				const std::vector<sonotopy::DisjointGridTopology::Node> &nodes);
   void getGridCursor(float &x, float &y);
   void resetAdaptations();
 
@@ -48,6 +53,9 @@ class SonotopyInterface {
   sonotopy::GridMap *gridMap;
   sonotopy::GridMapParameters gridMapParameters;
   unsigned int gridMapWidth, gridMapHeight;
+  sonotopy::DisjointGridMap *disjointGridMap;
+  sonotopy::GridMapParameters disjointGridMapParameters;
+  unsigned int disjointGridMapWidth, disjointGridMapHeight;
   sonotopy::AudioParameters audioParameters;
   sonotopy::Normalizer normalizer;
 };
