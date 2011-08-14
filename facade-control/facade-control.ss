@@ -28,6 +28,9 @@
 ; colours to be sent
 (define fc-colours (make-vector 1085 #(0 0 0)))
 
+; network is down message is displayed only once per seesion
+(define network-down-msg #f)
+
 ; (fc-init hostname [port 8080] [mode 'passive])
 ; 	hostname : string
 ; 	port : integer
@@ -41,6 +44,7 @@
 	(udp-close fc-socket)
 	(set! fc-socket (udp-open-socket))
 
+	(set! network-down-msg #f)
 	(destroy fc-pixels)
 	(set! fc-pixels (build-pixels fc-pixels-width fc-pixels-height
 								  (if (eq? mode 'active) #t #f)))
@@ -66,7 +70,12 @@
 				(make-packet i (vector-ref colours i)))))
 		(define current-time (current-inexact-milliseconds))
 		(when (>= (- current-time last-send-time) 40) ; max 25 fps
-			(udp-send-to fc-socket fc-hostname fc-port bstr)
+			(with-handlers
+				([exn:fail:network?	(lambda (exn)
+									  (when (not network-down-msg)
+										  (printf "~a~n" (exn-message exn))
+										  (set! network-down-msg #t)))])
+				(udp-send-to fc-socket fc-hostname fc-port bstr))
 			(set! last-send-time current-time)))))
 
 ; (map-side s p double)
