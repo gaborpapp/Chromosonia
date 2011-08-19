@@ -1,0 +1,21 @@
+Installation
+
+install jack, sndfile, fftw3, scons
+
+sonotopy (https://github.com/alex-berman/sonotopy)
+	git clone https://github.com/alex-berman/sonotopy.git
+	cd sonotopy
+	scons
+	sudo scons install
+
+echoprint-codegen
+	git clone https://github.com/gaborpapp/echoprint-codegen.git
+	cd echoprint-codegen/src
+	make
+	sudo make install
+
+pyechonest (http://code.google.com/p/pyechonest/)
+	download http://pyechonest.googlecode.com/files/pyechonest.zip
+	python setup.py build
+	python setup.py install
+

@@ -1,5 +1,5 @@
 (require racket/vector)
-(require fluxus-018/fluxus-sonotopy)
+(require fluxus-018/chromosonia-audio)
 (require "facade-control.ss")
 
 (clear)
@@ -11,15 +11,18 @@
 
 (fc-init host)
 
-(init-sonotopy)
-(grid-size (vector fc-pixels-width fc-pixels-height 0))
+(init-audio)
+(disjoint-grid-layout (vector fc-pixels-width fc-pixels-height 0)
+                      fc-mask)
+
+;(grid-size (vector fc-pixels-width fc-pixels-height 0))
 
 ; flattens the 2d grid
 (define (vector2d->vector1d v)
     (apply vector-append (vector->list v)))
 
 (define (mainloop)
-    (let ([pattern (vector2d->vector1d (grid-pattern))])
+    (let ([pattern (vector2d->vector1d (disjoint-grid-pattern))])
         (with-primitive fc-pixels
             (pdata-index-map!
                 (λ (i c)
