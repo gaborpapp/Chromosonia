@@ -597,6 +597,23 @@ Scheme_Object *danceability(int argc, Scheme_Object **argv) {
   return scheme_make_float(danceability);
 }
 
+Scheme_Object *artist(int argc, Scheme_Object **argv) {
+  string artist = "";
+  DECL_ARGV();
+  if(echonestInterface != NULL)
+    artist = echonestInterface->getArtist();
+  MZ_GC_UNREG();
+  return scheme_make_utf8_string(artist.c_str());
+}
+
+Scheme_Object *song(int argc, Scheme_Object **argv) {
+  string song = "";
+  DECL_ARGV();
+  if(echonestInterface != NULL)
+    song = echonestInterface->getSong();
+  MZ_GC_UNREG();
+  return scheme_make_utf8_string(song.c_str());
+}
 
 /////////////////////
 
@@ -647,6 +664,10 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
 		    scheme_make_prim_w_arity(reset_sonotopy, "reset-sonotopy", 0, 0), menv);
   scheme_add_global("danceability",
 		    scheme_make_prim_w_arity(danceability, "danceability", 0, 0), menv);
+  scheme_add_global("artist",
+		    scheme_make_prim_w_arity(artist, "artist", 0, 0), menv);
+  scheme_add_global("song",
+		    scheme_make_prim_w_arity(song, "song", 0, 0), menv);
 
   scheme_finish_primitive_module(menv);
   MZ_GC_UNREG();

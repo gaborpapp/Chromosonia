@@ -1,4 +1,5 @@
 #include "SongIdentifier.hpp"
+#include <string>
 #include <sndfile.h>
 #include <pthread.h>
 
@@ -7,6 +8,8 @@ public:
   EchonestInterface(int sampleRate, float codegenDuration = 20);
   void feedAudio(const float *, unsigned long numFrames);
   float getDanceability();
+  std::string getArtist();
+  std::string getSong();
 
 private:
   void processCodegenBufferInNewThread();

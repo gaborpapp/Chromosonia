@@ -19,6 +19,14 @@ float EchonestInterface::getDanceability() {
   return songIdentifier->getDanceability();
 }
 
+std::string EchonestInterface::getArtist() {
+  return songIdentifier->getArtist();
+}
+
+std::string EchonestInterface::getSong() {
+  return songIdentifier->getSong();
+}
+
 void EchonestInterface::startCodegenBuffering() {
   codegenCurrentNumFrames = 0;
   sprintf(bufferFilename, "%s%04d.wav", CODEGEN_TEMP_FILENAME, bufferCount++);

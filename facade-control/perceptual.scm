@@ -4,7 +4,10 @@
 
 (clear)
 
-(define host "169.254.73.149")
+;(define host "169.254.73.149")
+
+(define host "192.168.1.189")
+
 (texture-params 0 '(min nearest mag nearest))
 
 (set-camera-transform (mtranslate #(0 0 -37)))
