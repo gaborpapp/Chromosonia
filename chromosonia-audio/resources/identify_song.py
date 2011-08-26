@@ -20,7 +20,7 @@ def lookup(file):
     #print "fp=%s" % fp
     if len(fp) and "code" in fp[0]:
         # The version parameter to song/identify indicates the use of echoprint
-        result = pyechonest.song.identify(query_obj=fp, version="4.11")
+        result = pyechonest.song.identify(query_obj=fp, version="4.12")
         print "Got result:", result
         if len(result):
             song = result[0]
