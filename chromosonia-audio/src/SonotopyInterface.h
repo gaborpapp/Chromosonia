@@ -40,8 +40,33 @@ class SonotopyInterface {
 				const std::vector<sonotopy::DisjointGridTopology::Node> &nodes);
   void getGridCursor(float &x, float &y);
   void resetAdaptations();
+  bool isInsideEvent();
 
  private:
+  class EventStateManager : public sonotopy::EventDetector {
+  public:
+    EventStateManager(const sonotopy::AudioParameters &audioParameters) :
+      sonotopy::EventDetector(audioParameters)
+    {
+      insideEvent = false;
+    }
+
+    void onStartOfEvent() {
+      insideEvent = true;
+    }
+
+    void onEndOfEvent() {
+      insideEvent = false;
+    }
+
+    bool isInsideEvent() {
+      return insideEvent;
+    }
+
+  private:
+    bool insideEvent;
+  };
+
   sonotopy::BeatTracker *beatTracker;
   sonotopy::SpectrumAnalyzer *spectrumAnalyzer;
   sonotopy::SpectrumBinDivider *spectrumBinDivider;
@@ -58,4 +83,5 @@ class SonotopyInterface {
   unsigned int disjointGridMapWidth, disjointGridMapHeight;
   sonotopy::AudioParameters audioParameters;
   sonotopy::Normalizer normalizer;
+  EventStateManager *eventStateManager;
 };

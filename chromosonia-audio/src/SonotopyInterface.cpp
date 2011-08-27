@@ -36,6 +36,8 @@ SonotopyInterface::SonotopyInterface(int sampleRate, int bufferSize) {
   gridMapWidth = gridMapParameters.gridWidth;
   gridMapHeight = gridMapParameters.gridHeight;
 
+  eventStateManager = new EventStateManager(audioParameters);
+
   disjointGridMap = NULL;
   waveformCircularBuffer = NULL;
   waveformBuffer = NULL;
@@ -48,6 +50,7 @@ SonotopyInterface::~SonotopyInterface() {
   delete spectrumAnalyzer;
   delete circleMap;
   delete gridMap;
+  delete eventStateManager;
   if(waveformCircularBuffer != NULL)
     delete waveformCircularBuffer;
   if(waveformBuffer != NULL)
@@ -62,6 +65,7 @@ void SonotopyInterface::feedAudio(const float *buffer, unsigned long numFrames) 
   gridMap->feedAudio(buffer, numFrames);
   if(disjointGridMap)
     disjointGridMap->feedAudio(buffer, numFrames);
+  eventStateManager->feedAudio(buffer, numFrames);
   if(waveformCircularBuffer != NULL) {
     waveformCircularBuffer->write(numFrames, buffer);
     waveformCircularBuffer->moveReadHead(numFrames);
@@ -174,4 +178,8 @@ const SOM::ActivationPattern* SonotopyInterface::getDisjointGridMapActivationPat
 void SonotopyInterface::resetAdaptations() {
   circleMap->resetAdaptation();
   gridMap->resetAdaptation();
+}
+
+bool SonotopyInterface::isInsideEvent() {
+  return eventStateManager->isInsideEvent();
 }

@@ -615,6 +615,14 @@ Scheme_Object *song(int argc, Scheme_Object **argv) {
   return scheme_make_utf8_string(song.c_str());
 }
 
+Scheme_Object *inside_event(int argc, Scheme_Object **argv) {
+  bool insideEvent = false;
+  if(sonotopyInterface != NULL)
+    insideEvent = sonotopyInterface->isInsideEvent();
+  return scheme_make_integer_value(insideEvent);
+}
+
+
 /////////////////////
 
 #ifdef STATIC_LINK
@@ -668,6 +676,8 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
 		    scheme_make_prim_w_arity(artist, "artist", 0, 0), menv);
   scheme_add_global("song",
 		    scheme_make_prim_w_arity(song, "song", 0, 0), menv);
+  scheme_add_global("inside-event",
+		    scheme_make_prim_w_arity(inside_event, "inside-event", 0, 0), menv);
 
   scheme_finish_primitive_module(menv);
   MZ_GC_UNREG();
