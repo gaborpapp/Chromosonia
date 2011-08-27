@@ -622,6 +622,46 @@ Scheme_Object *inside_event(int argc, Scheme_Object **argv) {
   return scheme_make_integer_value(insideEvent);
 }
 
+Scheme_Object *decibel(int argc, Scheme_Object **argv) {
+  float db = 0.0f;
+  if(sonotopyInterface != NULL)
+    db = sonotopyInterface->getEventStateManager()->getCurrentDb();
+  return scheme_make_float(db);
+}
+
+Scheme_Object *decibel_threshold(int argc, Scheme_Object **argv) {
+  DECL_ARGV();
+
+  if(argc == 1) {
+    ArgCheck("decibel-threshold", "f", argc, argv);
+    if(sonotopyInterface != NULL)
+      sonotopyInterface->getEventStateManager()->setDbThreshold(FloatFromScheme(argv[0]));
+  }
+
+  float threshold = 0.0f;
+  if(sonotopyInterface != NULL)
+    threshold = sonotopyInterface->getEventStateManager()->getDbThreshold();
+
+  MZ_GC_UNREG();
+  return scheme_make_float(threshold);
+}
+
+Scheme_Object *trailing_silence(int argc, Scheme_Object **argv) {
+  DECL_ARGV();
+
+  if(argc == 1) {
+    ArgCheck("trailing-silence", "f", argc, argv);
+    if(sonotopyInterface != NULL)
+      sonotopyInterface->getEventStateManager()->setTrailingSilenceMs(FloatFromScheme(argv[0]));
+  }
+
+  float trailingSilence = 0.0f;
+  if(sonotopyInterface != NULL)
+    trailingSilence = sonotopyInterface->getEventStateManager()->getTrailingSilenceMs();
+
+  MZ_GC_UNREG();
+  return scheme_make_float(trailingSilence);
+}
 
 /////////////////////
 
@@ -678,6 +718,12 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
 		    scheme_make_prim_w_arity(song, "song", 0, 0), menv);
   scheme_add_global("inside-event",
 		    scheme_make_prim_w_arity(inside_event, "inside-event", 0, 0), menv);
+  scheme_add_global("decibel",
+		    scheme_make_prim_w_arity(decibel, "decibel", 0, 0), menv);
+  scheme_add_global("decibel-threshold",
+		    scheme_make_prim_w_arity(decibel_threshold, "decibel-threshold", 0, 1), menv);
+  scheme_add_global("trailing-silence",
+		    scheme_make_prim_w_arity(trailing_silence, "trailing-silence", 0, 1), menv);
 
   scheme_finish_primitive_module(menv);
   MZ_GC_UNREG();
