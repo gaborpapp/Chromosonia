@@ -16,11 +16,14 @@
 
 #include <escheme.h>
 #include <iostream>
+#include <iterator> // TEMP
 #include <jack/jack.h>
 #include "SonotopyInterface.h"
 #include "EchonestInterface.hpp"
 #include "SchemeHelper.h"
 #include <pthread.h>
+
+const static float BEAT_PATTERN_CROSSFADE_MS = 1500;
 
 using namespace std;
 using namespace sonotopy;
@@ -32,6 +35,78 @@ jack_port_t *jackInputPort;
 SonotopyInterface *sonotopyInterface = NULL;
 EchonestInterface *echonestInterface = NULL;
 pthread_mutex_t mutex;
+bool insideEvent = false;
+
+class BeatPattern {
+public:
+  BeatPattern() {
+  }
+
+  void addFrame(float x) {
+    frames.push_back(x);
+  }
+
+  void removeTrailingSilenceFrames() {
+    unsigned int numTrailingFrames =
+      sonotopyInterface->getEventStateManager()->getTrailingSilenceMs() / 1000
+      * sonotopyInterface->getAudioParameters().sampleRate
+      / sonotopyInterface->getAudioParameters().bufferSize;
+    int newNumFrames = frames.size() - numTrailingFrames;
+    if(newNumFrames < 0)
+      newNumFrames = 0;
+    frames.resize(newNumFrames);
+  }
+
+  void crossFade() {
+    unsigned int numFadeFrames =
+      BEAT_PATTERN_CROSSFADE_MS / 1000
+      * sonotopyInterface->getAudioParameters().sampleRate
+      / sonotopyInterface->getAudioParameters().bufferSize;
+    if(numFadeFrames > frames.size() / 2)
+      numFadeFrames = frames.size() / 2;
+
+    vector<float>::iterator front = frames.begin();
+    vector<float>::iterator back = frames.begin() + (frames.size() - numFadeFrames);
+    for(unsigned int i = 0; i < numFadeFrames; i++) {
+      float frontGain = (float) i / numFadeFrames;
+      float backGain = 1.0f - frontGain;
+      *front = frontGain * (*front) + backGain * (*back);
+      front++;
+      back++;
+    }
+    frames.resize(frames.size() - numFadeFrames);
+  }
+
+  vector<float>& getFrames() { return frames; }
+
+private:
+  vector<float> frames;
+  int numTrailingSilenceFrames;
+};
+
+BeatPattern *beatPattern = NULL;
+
+void handleAudioEvents() {
+  if(insideEvent) {
+    if(sonotopyInterface->getEventStateManager()->isInsideEvent())
+      beatPattern->addFrame(sonotopyInterface->getBeatIntensity());
+    else {
+      beatPattern->removeTrailingSilenceFrames();
+      beatPattern->crossFade();
+      insideEvent = false;
+
+      cerr << "beat pattern:\n"; copy(beatPattern->getFrames().begin(), beatPattern->getFrames().end(), ostream_iterator<float>(cerr, "\n")); cerr << endl; // TEMP
+    }
+  }
+  else {
+    if(sonotopyInterface->getEventStateManager()->isInsideEvent()) {
+      insideEvent = true;
+      if(beatPattern) delete beatPattern;
+      beatPattern = new BeatPattern();
+      beatPattern->addFrame(sonotopyInterface->getBeatIntensity());
+    }
+  }
+}
 
 int jackProcess(jack_nframes_t num_frames, void *arg) {
   jack_default_audio_sample_t *buffer =
@@ -39,6 +114,7 @@ int jackProcess(jack_nframes_t num_frames, void *arg) {
   pthread_mutex_lock(&mutex);
   sonotopyInterface->feedAudio((float *)buffer, num_frames);
   echonestInterface->feedAudio((float *)buffer, num_frames);
+  handleAudioEvents();
   pthread_mutex_unlock(&mutex);
   return 0;
 }

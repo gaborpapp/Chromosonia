@@ -44,6 +44,7 @@ class SonotopyInterface {
 
   SonotopyInterface(int bufferSize, int sampleRate);
   ~SonotopyInterface();
+  const sonotopy::AudioParameters& getAudioParameters() { return audioParameters; }
   void feedAudio(const float *, unsigned long numFrames);
   float getVaneAngle();
   float getBeatIntensity();
