@@ -41,6 +41,7 @@ SOM *genreMap = NULL;
 DisjointGridTopology *genreMapTopology;
 unsigned int genreMapWidth, genreMapHeight;
 unsigned int numGenres = 0;
+vector<SOM::Sample> genreKeys;
 
 void setGenreMapLayout(unsigned int numGenres,
 		       unsigned int width,
@@ -56,6 +57,8 @@ void setGenreMapLayout(unsigned int numGenres,
   genreMap = new SOM(numGenres, genreMapTopology);
   genreMap->setLearningParameter(0.25);
   genreMap->setNeighbourhoodParameter(0.7);
+  genreMap->setRandomModelValues(0, numGenres);
+  genreKeys.clear();
 }
 
 class BeatPattern {
@@ -650,10 +653,16 @@ Scheme_Object *add_to_genre_map(int argc, Scheme_Object **argv) {
   vector<float> key = SchemeHelper::FloatVectorFromScheme(argv[0]);
   if(genreMap) {
     if(key.size() == numGenres)
-      genreMap->train(key);
+      genreKeys.push_back(key);
     else
       cerr << "illegal genre key size: expected " << numGenres << " but got " << key.size() << endl;
   }
+  return scheme_void;
+}
+
+Scheme_Object *update_genre_map(int argc, Scheme_Object **argv) {
+  for(vector<SOM::Sample>::const_iterator i = genreKeys.begin(); i != genreKeys.end(); i++)
+    genreMap->train(*i);
   return scheme_void;
 }
 
@@ -935,6 +944,8 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
 		    scheme_make_prim_w_arity(add_to_genre_map, "add-to-genre-map", 1, 1), menv);
   scheme_add_global("genre-map-lookup",
 		    scheme_make_prim_w_arity(genre_map_lookup, "genre-map-lookup", 1, 1), menv);
+  scheme_add_global("update-genre-map",
+		    scheme_make_prim_w_arity(update_genre_map, "update-genre-map", 0, 0), menv);
   scheme_add_global("print-genre-map",
 		    scheme_make_prim_w_arity(print_genre_map, "print-genre-map", 0, 0), menv);
 

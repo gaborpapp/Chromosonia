@@ -64,6 +64,12 @@
 (add-to-genre-map song4key)
 (add-to-genre-map song5key)
 
+;; by repeating the commands below, one should see the map converging towards keys 1&2 in one corner, 3&4 in the opposite corner, and 5 somewhere between
+;(update-genre-map)
 ;(genre-map-lookup song1key)
+;(genre-map-lookup song2key)
+;(genre-map-lookup song3key)
+;(genre-map-lookup song4key)
+;(genre-map-lookup song5key)
 
 
