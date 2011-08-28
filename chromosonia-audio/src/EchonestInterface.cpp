@@ -11,8 +11,9 @@ EchonestInterface::EchonestInterface(int _sampleRate, float codegenDuration) {
   bufferCount = 0;
   pthread_mutex_init(&mutex, NULL);
   buffering = false;
+  processingCodegenBuffer = false;
+  shouldRestartBufferingAfterProcessing = true;
   songIdentifier = new SongIdentifier();
-  startCodegenBuffering();
 }
 
 float EchonestInterface::getDanceability() {
@@ -25,6 +26,10 @@ std::string EchonestInterface::getArtist() {
 
 std::string EchonestInterface::getSong() {
   return songIdentifier->getSong();
+}
+
+void EchonestInterface::restartBufferingAfterProcessing(bool v) {
+  shouldRestartBufferingAfterProcessing = v;
 }
 
 void EchonestInterface::startCodegenBuffering() {
@@ -72,6 +77,7 @@ void EchonestInterface::stopCodegenBuffering() {
 }
 
 void EchonestInterface::processCodegenBufferInNewThread() {
+  processingCodegenBuffer = true;
   pthread_create(&processingThread, 0, &EchonestInterface::processCodegenBufferStartThread, this);
 }
 
@@ -80,6 +86,16 @@ void EchonestInterface::processCodegenBuffer() {
   sf_close(codegenBuffer);
   songIdentifier->identify(bufferFilename);
   stopCodegenBuffering();
-  startCodegenBuffering();
+  processingCodegenBuffer = false;
+  if(shouldRestartBufferingAfterProcessing) {
+    fprintf(stderr, "restarting codegen buffering\n");
+    startCodegenBuffering();
+  }
+  else
+    fprintf(stderr, "not restarting codegen buffering\n");
   pthread_mutex_unlock(&mutex);
+}
+
+bool EchonestInterface::isProcessingCodegenBuffer() {
+  return processingCodegenBuffer;
 }

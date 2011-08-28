@@ -86,11 +86,15 @@ private:
 
 BeatPattern *beatPattern = NULL;
 
-void handleAudioEvents() {
+void handleAudioEvents(float *buffer, unsigned long numFrames) {
   if(insideEvent) {
-    if(sonotopyInterface->getEventStateManager()->isInsideEvent())
+    if(sonotopyInterface->getEventStateManager()->isInsideEvent()) {
       beatPattern->addFrame(sonotopyInterface->getBeatIntensity());
+      echonestInterface->feedAudio(buffer, numFrames);
+    }
     else {
+      echonestInterface->restartBufferingAfterProcessing(false);
+      echonestInterface->processCodegenBufferInNewThread();
       beatPattern->removeTrailingSilenceFrames();
       beatPattern->crossFade();
       insideEvent = false;
@@ -104,6 +108,9 @@ void handleAudioEvents() {
       if(beatPattern) delete beatPattern;
       beatPattern = new BeatPattern();
       beatPattern->addFrame(sonotopyInterface->getBeatIntensity());
+      echonestInterface->restartBufferingAfterProcessing(true);
+      echonestInterface->startCodegenBuffering();
+      echonestInterface->feedAudio(buffer, numFrames);
     }
   }
 }
@@ -112,9 +119,12 @@ int jackProcess(jack_nframes_t num_frames, void *arg) {
   jack_default_audio_sample_t *buffer =
     (jack_default_audio_sample_t *) jack_port_get_buffer(jackInputPort, num_frames);
   pthread_mutex_lock(&mutex);
-  sonotopyInterface->feedAudio((float *)buffer, num_frames);
-  echonestInterface->feedAudio((float *)buffer, num_frames);
-  handleAudioEvents();
+  if(sonotopyInterface->getEventStateManager()->isInsideEvent())
+    sonotopyInterface->feedAudio((float *)buffer, num_frames);
+  if(!echonestInterface->isProcessingCodegenBuffer()) {
+    sonotopyInterface->updateEventState((float *)buffer, num_frames);
+    handleAudioEvents((float *)buffer, num_frames);
+  }
   pthread_mutex_unlock(&mutex);
   return 0;
 }

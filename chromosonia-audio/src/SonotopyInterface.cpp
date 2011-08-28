@@ -65,11 +65,18 @@ void SonotopyInterface::feedAudio(const float *buffer, unsigned long numFrames) 
   gridMap->feedAudio(buffer, numFrames);
   if(disjointGridMap)
     disjointGridMap->feedAudio(buffer, numFrames);
-  eventStateManager->feedAudio(buffer, numFrames);
   if(waveformCircularBuffer != NULL) {
     waveformCircularBuffer->write(numFrames, buffer);
     waveformCircularBuffer->moveReadHead(numFrames);
   }
+}
+
+void SonotopyInterface::updateEventState(const float *buffer, unsigned long numFrames) {
+  eventStateManager->feedAudio(buffer, numFrames);
+}
+
+bool SonotopyInterface::isInsideEvent() {
+  return eventStateManager->isInsideEvent();
 }
 
 float SonotopyInterface::getVaneAngle() {
@@ -178,8 +185,4 @@ const SOM::ActivationPattern* SonotopyInterface::getDisjointGridMapActivationPat
 void SonotopyInterface::resetAdaptations() {
   circleMap->resetAdaptation();
   gridMap->resetAdaptation();
-}
-
-bool SonotopyInterface::isInsideEvent() {
-  return eventStateManager->isInsideEvent();
 }

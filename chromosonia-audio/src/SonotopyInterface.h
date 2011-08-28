@@ -46,6 +46,7 @@ class SonotopyInterface {
   ~SonotopyInterface();
   const sonotopy::AudioParameters& getAudioParameters() { return audioParameters; }
   void feedAudio(const float *, unsigned long numFrames);
+  void updateEventState(const float *, unsigned long numFrames);
   float getVaneAngle();
   float getBeatIntensity();
   int getNumSpectrumBins();
