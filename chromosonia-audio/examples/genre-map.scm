@@ -44,7 +44,26 @@
 ;; (genre-key (list "hip hop/rap" "latin")))
 ;; returns (vector 0 0 0 5 0 4 0 0 1 0 0 3 0 0 0 2) (or something similar)
 
-;; (define (genre-key genre-list)
+
+(define (genre-key genre-list)
+  (define key (make-vector (length genres) 0))
+
+  (define (range high low)
+    (cond
+     [(> low high) null]
+     [else (cons high (range (- high 1) low))]))
+
+  (define (genre-id genre)
+    0 ;; TODO: replace this will lookup in genres)
+    )
+
+  (for ([genre genre-list] [weight (range 5 (- 5 (length genre-list)))])
+       (printf "weight=~a genre=~a\n" weight genre) ;; TEMP
+       (vector-set! key (genre-id genre) weight))
+
+  (printf "genre-key: ~a\n" key) ;; TEMP
+  key)
+
 ;; TODO
 
 ;; (define song1key (genre-key (list "jazz" "easy listening" "alternative & punk" "folk")))
