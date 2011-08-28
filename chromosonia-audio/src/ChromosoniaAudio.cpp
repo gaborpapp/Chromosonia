@@ -37,6 +37,27 @@ EchonestInterface *echonestInterface = NULL;
 pthread_mutex_t mutex;
 bool insideEvent = false;
 
+SOM *genreMap = NULL;
+DisjointGridTopology *genreMapTopology;
+unsigned int genreMapWidth, genreMapHeight;
+unsigned int numGenres = 0;
+
+void setGenreMapLayout(unsigned int numGenres,
+		       unsigned int width,
+		       unsigned int height,
+		       const vector<DisjointGridTopology::Node> &nodes) {
+  if(genreMap) {
+    delete genreMap;
+    delete genreMapTopology;
+  }
+  genreMapWidth = width;
+  genreMapHeight = height;
+  genreMapTopology = new DisjointGridTopology(width, height, nodes);
+  genreMap = new SOM(numGenres, genreMapTopology);
+  genreMap->setLearningParameter(0.25);
+  genreMap->setNeighbourhoodParameter(0.7);
+}
+
 class BeatPattern {
 public:
   BeatPattern() {
@@ -573,6 +594,104 @@ Scheme_Object *disjoint_grid_layout(int argc, Scheme_Object **argv) {
   return result;
 }
 
+Scheme_Object *genre_map_layout(int argc, Scheme_Object **argv) {
+  Scheme_Object *result = NULL;
+  MZ_GC_DECL_REG(2);
+  MZ_GC_VAR_IN_REG(0, argv);
+  MZ_GC_VAR_IN_REG(1, result);
+  MZ_GC_REG();
+  result = scheme_make_vector(3, scheme_void);
+
+  if(argc == 3) {
+    //ArgCheck("genre-map-layout", "ivv", argc, argv); // doesn't handle arg 3
+    numGenres = SchemeHelper::IntFromScheme(argv[0]);
+    vector<float> sizeVector = SchemeHelper::FloatVectorFromScheme(argv[1]);
+    if(sizeVector.size() == 2 || sizeVector.size() == 3) {
+      Scheme_Object *schemeNodes = argv[2];
+      vector<DisjointGridTopology::Node> nodes;
+      for (int n=0; n<SCHEME_VEC_SIZE(schemeNodes); n++) {
+	Scheme_Object *nodeV = SCHEME_VEC_ELS(schemeNodes)[n];
+	int s = SCHEME_VEC_SIZE(nodeV);
+	if(s == 2) {
+	  if(SCHEME_EXACT_INTEGERP(SCHEME_VEC_ELS(nodeV)[0]) &&
+	     SCHEME_EXACT_INTEGERP(SCHEME_VEC_ELS(nodeV)[1])) {
+	    int x = IntFromScheme(SCHEME_VEC_ELS(nodeV)[0]);
+	    int y = IntFromScheme(SCHEME_VEC_ELS(nodeV)[1]);
+	    nodes.push_back(DisjointGridTopology::Node(x, y));
+	  }
+	}
+      }
+      if(sonotopyInterface != NULL) {
+	pthread_mutex_lock(&mutex);
+	setGenreMapLayout(numGenres,
+			  sizeVector[0],
+			  sizeVector[1],
+			  nodes);
+	pthread_mutex_unlock(&mutex);
+      }
+    }
+  }
+
+  float width = 0, height = 0;
+  if(sonotopyInterface != NULL) {
+    width = genreMapWidth;
+    height = genreMapHeight;
+  }
+
+  SCHEME_VEC_ELS(result)[0] = scheme_make_integer_value(width);
+  SCHEME_VEC_ELS(result)[1] = scheme_make_integer_value(height);
+  SCHEME_VEC_ELS(result)[2] = scheme_make_integer_value(0);
+
+  MZ_GC_UNREG();
+  return result;
+}
+
+Scheme_Object *add_to_genre_map(int argc, Scheme_Object **argv) {
+  vector<float> key = SchemeHelper::FloatVectorFromScheme(argv[0]);
+  if(genreMap) {
+    if(key.size() == numGenres)
+      genreMap->train(key);
+    else
+      cerr << "illegal genre key size: expected " << numGenres << " but got " << key.size() << endl;
+  }
+  return scheme_void;
+}
+
+Scheme_Object *genre_map_lookup(int argc, Scheme_Object **argv) {
+  Scheme_Object *result = NULL;
+  MZ_GC_DECL_REG(3);
+  MZ_GC_VAR_IN_REG(0, result);
+  MZ_GC_VAR_IN_REG(1, argv);
+  MZ_GC_REG();
+
+  int x=-1, y=-1;
+  vector<float> key = SchemeHelper::FloatVectorFromScheme(argv[0]);
+  if(genreMap) {
+    if(key.size() == numGenres) {
+      unsigned int nodeId = genreMap->getWinner(key);
+      unsigned int ux, uy;
+      genreMapTopology->idToGridCoordinates(nodeId, ux, uy);
+      x = ux;
+      y = uy;
+    }
+    else
+      cerr << "illegal genre key size: expected " << numGenres << " but got " << key.size() << endl;
+  }
+
+  result = scheme_make_vector(2, scheme_void);
+  SCHEME_VEC_ELS(result)[0] = scheme_make_integer_value(x);
+  SCHEME_VEC_ELS(result)[1] = scheme_make_integer_value(y);
+
+  MZ_GC_UNREG();
+  return result;
+}
+
+Scheme_Object *print_genre_map(int argc, Scheme_Object **argv) {
+  if(genreMap)
+    genreMap->writeModelData(cerr);
+  return scheme_void;
+}
+
 // StartFunctionDoc-en
 // disjoint-grid-pattern
 // Returns: vector of vector of float
@@ -810,6 +929,14 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
 		    scheme_make_prim_w_arity(decibel_threshold, "decibel-threshold", 0, 1), menv);
   scheme_add_global("trailing-silence",
 		    scheme_make_prim_w_arity(trailing_silence, "trailing-silence", 0, 1), menv);
+  scheme_add_global("genre-map-layout",
+		    scheme_make_prim_w_arity(genre_map_layout, "genre-map-layout", 3, 3), menv);
+  scheme_add_global("add-to-genre-map",
+		    scheme_make_prim_w_arity(add_to_genre_map, "add-to-genre-map", 1, 1), menv);
+  scheme_add_global("genre-map-lookup",
+		    scheme_make_prim_w_arity(genre_map_lookup, "genre-map-lookup", 1, 1), menv);
+  scheme_add_global("print-genre-map",
+		    scheme_make_prim_w_arity(print_genre_map, "print-genre-map", 0, 0), menv);
 
   scheme_finish_primitive_module(menv);
   MZ_GC_UNREG();
