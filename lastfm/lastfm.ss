@@ -3,8 +3,10 @@
 
 (provide
 	get-toptags
+	get-toptags/count
 	genres
-	get-genre)
+	get-genre
+	get-topgenres/count)
 
 (define api-key "e41bd2650f381f8b6975ee5bc2109516")
 
@@ -22,6 +24,30 @@
 			  (define tag (regexp-match tag-name-regexp line))
 			  (when tag
 				(cadr tag)))))
+
+;; (get-toptags/count artist)
+;;		artist : string
+;;		-> list of (string . number)
+
+(define (get-toptags/count artist)
+	(define lastfm-port (get-pure-port
+				(string->url (string-append "http://ws.audioscrobbler.com/2.0/?method=artist.gettoptags"
+											"&artist=" artist
+											"&api_key=" api-key))))
+	(define tag-regexp
+		(pregexp "<name>(.+?)</name>\\s+<count>(.+?)</count>"))
+
+	(define matches
+		(regexp-match*  ; does not return subgroups
+			tag-regexp
+			(for/fold ([contents ""])
+					  ([line (in-lines lastfm-port)])
+				(string-append contents line))))
+
+	(for/list ([line matches])
+		(let ([m (regexp-match tag-regexp line)])
+			(cons (list-ref m 1)
+				  (string->number (list-ref m 2))))))
 
 ; genre list from
 ; http://manufacturedenvironments.com/2008/04/organizing-itunes-simplify-your-genre-list/
@@ -481,6 +507,33 @@
 							   [else
 								 (find-genre (cdr tags))]))])
 	(find-genre (get-toptags artist))))
+
+;; (get-topgenres artist [count 5]) -> list of (string . count)
+;; 		artist : string
+
+(define (get-topgenres/count artist [count 5])
+  (define genre-hash (make-hash))
+  (define (find-genre tc)
+		(define tag (string-downcase (car tc)))
+		(define tagcnt (cdr tc))
+		(cond
+		   [(findf (lambda (x)
+					 (equal? x tag))
+				   genres)
+				(cons tag tagcnt)]
+		   [(hash-ref genre-similarity-hash tag #f)
+				(cons (hash-ref genre-similarity-hash tag) tagcnt)]
+		   [else
+			 #f]))
+  (for ([tc (get-toptags/count artist)]
+		#:when (< (length (hash-keys genre-hash)) count))
+	 (let ([gc (find-genre tc)])
+	   (when gc
+		 (let* ([genre (car gc)]
+			    [genrecnt (cdr gc)]
+				[oldgenrecnt (hash-ref genre-hash genre 0)])
+		   (hash-set! genre-hash genre (+ genrecnt oldgenrecnt))))))
+  (hash->list genre-hash))
 
 
 ;; helper functions to generate genre similarity hash table from last.fm
