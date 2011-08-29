@@ -6,7 +6,8 @@
 	get-toptags/count
 	genres
 	get-genre
-	get-topgenres/count)
+	get-topgenres/count
+	get-topgenres/count-normalized)
 
 (define api-key "e41bd2650f381f8b6975ee5bc2109516")
 
@@ -508,8 +509,10 @@
 								 (find-genre (cdr tags))]))])
 	(find-genre (get-toptags artist))))
 
-;; (get-topgenres artist [count 5]) -> list of (string . count)
+;; (get-topgenres/count artist [count 5]) -> list of (string . count)
 ;; 		artist : string
+;; 		count : number
+;; 	returns at most count results
 
 (define (get-topgenres/count artist [count 5])
   (define genre-hash (make-hash))
@@ -534,6 +537,23 @@
 				[oldgenrecnt (hash-ref genre-hash genre 0)])
 		   (hash-set! genre-hash genre (+ genrecnt oldgenrecnt))))))
   (hash->list genre-hash))
+
+;; (get-topgenres/count-normalized artist [count 5]) -> list of (string . count)
+;; 		artist : string
+;; 		count : number
+;; 	returns at most count results
+
+(define (get-topgenres/count-normalized artist [count 5])
+  (define gcl (get-topgenres/count artist count))
+  (define sumcnt (foldl
+				   (lambda (gc sum)
+					 (+ sum (cdr gc)))
+				   gcl))
+  (if (zero? sumcnt)
+	gcl
+	(map (lambda (gc) (cons (car gc)
+							(/ (cdr gc) sumcnt)))
+		 gcl)))
 
 
 ;; helper functions to generate genre similarity hash table from last.fm
