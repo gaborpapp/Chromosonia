@@ -1,4 +1,5 @@
 (require racket/vector)
+(require racket/list)
 (require fluxus-018/chromosonia-audio)
 (require "../lastfm/lastfm.ss")
 (init-audio)
@@ -34,16 +35,15 @@
 					 #(3 7)
 					 ))
 
-;; function genre-key
-;; this is supposed to return a vector with N elements, where N is the num of genres
-;; each element represents a genre and the value the weight for that genre according to the popularity list
-;; the weight is 5 for the most popular genre in a popularity list of 5 genres
-;; and 1 for the least popular
-;; and 0 for all other genres
+;; (genre-key genre-list)
+;; this function return a vector with N elements, where N is the num of genres.
+;; genre-list is a list of max 5 genres sorted by most popular first.
+;; each element in the returned vector represents a genre. value is the weight for that genre according to the popularity list.
+;; the weight is 5 for the most popular genre in the popularity list, 1 for the least popular,
+;; and 0 for all other genres.
 ;; example:
 ;; (genre-key (list "hip hop/rap" "latin")))
-;; returns (vector 0 0 0 5 0 4 0 0 1 0 0 3 0 0 0 2) (or something similar)
-
+;; returns #(0 0 0 0 0 0 0 0 0 0 0 5 0 0 4 0 0 0 0 0 0 0 0 0)
 
 (define (genre-key genre-list)
   (define key (make-vector (length genres) 0))
@@ -53,29 +53,27 @@
      [(> low high) null]
      [else (cons high (range (- high 1) low))]))
 
+  (define (list-index elem lst)
+    (define (list-index-n elem lst n)
+      (cond
+       [(empty? lst) #f]
+       [(equal? (first lst) elem) n]
+       [else (list-index-n elem (rest lst) (+ n 1))]))
+    (list-index-n elem lst 0))
+
   (define (genre-id genre)
-    0 ;; TODO: replace this will lookup in genres)
-    )
+    (list-index genre genres))
 
   (for ([genre genre-list] [weight (range 5 (- 5 (length genre-list)))])
-       (printf "weight=~a genre=~a\n" weight genre) ;; TEMP
        (vector-set! key (genre-id genre) weight))
 
-  (printf "genre-key: ~a\n" key) ;; TEMP
   key)
 
-;; TODO
-
-;; (define song1key (genre-key (list "jazz" "easy listening" "alternative & punk" "folk")))
-;; (define song2key (genre-key (list "jazz" "alternative & punk" "easy listening" "folk")))
-;; (define song3key (genre-key (list "hip hop/rap" "latin")))
-;; (define song4key (genre-key (list "hip hop/rap" "reggae" "latin")))
-
-(define song1key (vector 0 4 0 0 5 0 0 0 1 0 2 0 0 0 0 0 0 3 0 0 0 0 0))
-(define song2key (vector 0 0 0 0 5 0 4 0 1 0 2 0 0 0 0 0 0 3 0 0 0 0 0))
-(define song3key (vector 0 0 0 0 0 0 0 0 4 0 0 5 0 0 0 0 0 0 0 0 0 0 3))
-(define song4key (vector 0 0 3 0 0 0 0 0 4 0 0 5 0 0 0 0 0 0 0 0 0 0 0))
-(define song5key (vector 0 0 0 0 5 0 0 0 0 0 0 4 0 0 0 0 0 0 0 0 0 0 0))
+(define song1key (genre-key (list "jazz" "easy listening" "alternative & punk" "folk")))
+(define song2key (genre-key (list "jazz" "alternative & punk" "easy listening" "folk")))
+(define song3key (genre-key (list "hip hop/rap" "latin")))
+(define song4key (genre-key (list "hip hop/rap" "reggae" "latin")))
+(define song5key (genre-key (list "folk" "country" "gospel & religious")))
 
 (add-to-genre-map song1key)
 (add-to-genre-map song2key)
