@@ -8,6 +8,11 @@ sonotopy (https://github.com/alex-berman/sonotopy)
 	scons
 	sudo scons install
 
+	compile in 32-bit on OS X:
+
+	scons CCFLAGS="-arch i386"
+	sudo scons CCFLAGS="-arch i386" install
+
 echoprint-codegen
 	git clone https://github.com/gaborpapp/echoprint-codegen.git
 	cd echoprint-codegen/src
