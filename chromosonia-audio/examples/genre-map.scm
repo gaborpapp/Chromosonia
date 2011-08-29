@@ -91,7 +91,6 @@
 (texture-params 0 '(min nearest mag nearest))
 
 (define p (build-pixels sw sh))
-(define contrast 1.0) ;; this should be eliminated
 
 (with-primitive p
     (identity)
@@ -121,8 +120,7 @@
   (let ([pattern (vector2d->vector1d (genre-map-pattern))])
     (with-primitive p
 		    (pdata-index-map!
-		     (lambda (i c)
-		       (expt (vector-ref pattern i) contrast))
+		     (lambda (i c) (vector-ref pattern i))
 		     "c")
 		    (pixels-upload))))
 
