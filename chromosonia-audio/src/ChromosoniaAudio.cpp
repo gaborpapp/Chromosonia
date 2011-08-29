@@ -109,6 +109,7 @@ private:
 };
 
 BeatPattern *beatPattern = NULL;
+vector<float> beatFrames;
 
 void handleAudioEvents(float *buffer, unsigned long numFrames) {
   if(insideEvent) {
@@ -123,7 +124,8 @@ void handleAudioEvents(float *buffer, unsigned long numFrames) {
       beatPattern->crossFade();
       insideEvent = false;
 
-      cerr << "beat pattern:\n"; copy(beatPattern->getFrames().begin(), beatPattern->getFrames().end(), ostream_iterator<float>(cerr, "\n")); cerr << endl; // TEMP
+      //cerr << "beat pattern:\n"; copy(beatPattern->getFrames().begin(), beatPattern->getFrames().end(), ostream_iterator<float>(cerr, "\n")); cerr << endl; // TEMP
+	  beatFrames = beatPattern->getFrames();
     }
   }
   else {
@@ -877,6 +879,41 @@ Scheme_Object *trailing_silence(int argc, Scheme_Object **argv) {
   return scheme_make_float(trailingSilence);
 }
 
+Scheme_Object *beat_pattern(int argc, Scheme_Object **argv) {
+  Scheme_Object *result = NULL;
+  MZ_GC_DECL_REG(2);
+  MZ_GC_VAR_IN_REG(0, argv);
+  MZ_GC_VAR_IN_REG(1, result);
+  MZ_GC_REG();
+
+  pthread_mutex_lock(&mutex);
+  if((sonotopyInterface != NULL) && (beatFrames.size() > 0))
+  {
+    result = FloatsToScheme(&beatFrames[0], beatFrames.size());
+  }
+  else {
+    result = scheme_make_vector(0, scheme_void);
+  }
+  pthread_mutex_unlock(&mutex);
+
+  MZ_GC_UNREG();
+  return result;
+}
+
+Scheme_Object *beat_pattern_framerate(int argc, Scheme_Object **argv) {
+  DECL_ARGV();
+
+  float framerate = 0.0f;
+  if(sonotopyInterface != NULL)
+  {
+      framerate = sonotopyInterface->getAudioParameters().sampleRate /
+				  sonotopyInterface->getAudioParameters().bufferSize;
+  }
+
+  MZ_GC_UNREG();
+  return scheme_make_float(framerate);
+}
+
 /////////////////////
 
 #ifdef STATIC_LINK
@@ -948,6 +985,10 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
 		    scheme_make_prim_w_arity(update_genre_map, "update-genre-map", 0, 0), menv);
   scheme_add_global("print-genre-map",
 		    scheme_make_prim_w_arity(print_genre_map, "print-genre-map", 0, 0), menv);
+  scheme_add_global("beat-pattern",
+		    scheme_make_prim_w_arity(beat_pattern, "beat-pattern", 0, 0), menv);
+  scheme_add_global("beat-pattern-framerate",
+		    scheme_make_prim_w_arity(beat_pattern_framerate, "beat-pattern-framerate", 0, 0), menv);
 
   scheme_finish_primitive_module(menv);
   MZ_GC_UNREG();
