@@ -75,18 +75,55 @@
 (define song4key (genre-key (list "hip hop/rap" "reggae" "latin")))
 (define song5key (genre-key (list "folk" "country" "gospel & religious")))
 
-(add-to-genre-map song1key)
-(add-to-genre-map song2key)
-(add-to-genre-map song3key)
-(add-to-genre-map song4key)
-(add-to-genre-map song5key)
+(define keys-db (vector song1key song2key song3key song4key song5key))
 
-;; by repeating the commands below, one should see the map converging towards keys 1&2 in one corner, 3&4 in the opposite corner, and 5 somewhere between
-;(update-genre-map)
-;(genre-map-lookup song1key)
-;(genre-map-lookup song2key)
-;(genre-map-lookup song3key)
-;(genre-map-lookup song4key)
-;(genre-map-lookup song5key)
+(for ([key keys-db])
+     (add-to-genre-map key))
 
 
+
+;; simple visualization
+;; one should see the map converging towards keys 1&2 in one corner, 3&4 in the opposite corner, and 5 somewhere between
+
+(set-camera-transform (mtranslate #(0 0 -20)))
+(scale #(21 16 1))
+
+(texture-params 0 '(min nearest mag nearest))
+
+(define p (build-pixels sw sh))
+(define contrast 1.0) ;; this should be eliminated
+
+(with-primitive p
+    (identity)
+    (scale (vector sw (- sh) 1))
+    (hint-cull-ccw)
+    (hint-wire))
+
+; flattens the 2d grid
+(define (vector2d->vector1d v)
+    (apply vector-append (vector->list v)))
+
+(define (genre-map-pattern)
+  (define (add-item x y pattern)
+    (vector-set! (vector-ref pattern y) x 1))
+
+  (define (make-row n) (make-vector sw 0.3))
+
+  (let ([pattern (build-vector sh make-row)])
+    (for ([key keys-db])
+	 (let ([pos (genre-map-lookup key)])
+	   (add-item (vector-ref pos 0)
+		     (vector-ref pos 1) pattern)))
+    pattern))
+
+(define (render)
+  (update-genre-map)
+  (let ([pattern (vector2d->vector1d (genre-map-pattern))])
+    (with-primitive p
+		    (pdata-index-map!
+		     (lambda (i c)
+		       (expt (vector-ref pattern i) contrast))
+		     "c")
+		    (pixels-upload))))
+
+(every-frame (render))

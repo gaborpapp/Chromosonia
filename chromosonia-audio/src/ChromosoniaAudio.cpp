@@ -55,7 +55,7 @@ void setGenreMapLayout(unsigned int numGenres,
   genreMapHeight = height;
   genreMapTopology = new DisjointGridTopology(width, height, nodes);
   genreMap = new SOM(numGenres, genreMapTopology);
-  genreMap->setLearningParameter(0.25);
+  genreMap->setLearningParameter(0.05);
   genreMap->setNeighbourhoodParameter(0.7);
   genreMap->setRandomModelValues(0, numGenres);
   genreKeys.clear();
