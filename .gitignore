@@ -1,0 +1,7 @@
+*.scm~
+.sconf_temp
+.sconsign.dblite
+config.log
+chromosonia-audio_ss.dylib
+chromosonia-audio_ss.so
+*.os

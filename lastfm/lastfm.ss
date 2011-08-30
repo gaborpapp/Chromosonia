@@ -548,6 +548,7 @@
   (define sumcnt (foldl
 				   (lambda (gc sum)
 					 (+ sum (cdr gc)))
+				   0
 				   gcl))
   (if (zero? sumcnt)
 	gcl
