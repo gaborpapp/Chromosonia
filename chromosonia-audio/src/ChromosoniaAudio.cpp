@@ -819,7 +819,10 @@ Scheme_Object *artist(int argc, Scheme_Object **argv) {
   if(echonestInterface != NULL)
     artist = echonestInterface->getArtist();
   MZ_GC_UNREG();
-  return scheme_make_utf8_string(artist.c_str());
+  if (artist != "")
+	  return scheme_make_utf8_string(artist.c_str());
+  else
+	  return scheme_false;
 }
 
 Scheme_Object *song(int argc, Scheme_Object **argv) {
@@ -828,7 +831,10 @@ Scheme_Object *song(int argc, Scheme_Object **argv) {
   if(echonestInterface != NULL)
     song = echonestInterface->getSong();
   MZ_GC_UNREG();
-  return scheme_make_utf8_string(song.c_str());
+  if (song != "")
+	  return scheme_make_utf8_string(song.c_str());
+  else
+	  return scheme_false;
 }
 
 Scheme_Object *inside_event(int argc, Scheme_Object **argv) {

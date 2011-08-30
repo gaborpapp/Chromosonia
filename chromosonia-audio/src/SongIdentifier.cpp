@@ -6,10 +6,17 @@
 
 SongIdentifier::SongIdentifier() {
   getSongIdScriptLocation();
+  reset();
+}
+
+void SongIdentifier::reset() {
+  artist = "";
+  song = "";
   danceability = 0;
 }
 
 bool SongIdentifier::identify(const char *filename) {
+  reset();
   fprintf(stderr, "executing song identification script...\n");
   char command[1024];
   sprintf(command, "%s/%s %s", songIdScriptLocation, songIdScript, filename);

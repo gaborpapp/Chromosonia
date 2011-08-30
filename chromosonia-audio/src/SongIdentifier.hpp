@@ -10,6 +10,7 @@
 class SongIdentifier {
 public:
   SongIdentifier();
+  void reset();
   bool identify(const char *filename);
   std::string getArtist() { return artist; }
   std::string getSong() { return song; }
