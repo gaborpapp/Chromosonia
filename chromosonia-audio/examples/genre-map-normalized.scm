@@ -15,7 +15,7 @@
         #(0 5)
         #(0 6)
         #(0 7)
-        
+
         #(1 0)
         #(1 1)
         #(1 2)
@@ -24,7 +24,7 @@
         #(1 5)
         #(1 6)
         #(1 7)
-        
+
         #(3 0)
         #(3 1)
         #(3 2)
@@ -44,34 +44,35 @@
 (define (genre-key gc-list)
     (define (list-index elem lst)
         (- (length lst) (length (member elem lst))))
-    
+
     (define key (make-vector (length genres) 0))
-    
+
     (for ([gc gc-list])
         (let ([genre (car gc)]
                 [val (cdr gc)])
             (vector-set! key (list-index genre genres) val)))
-    
+
     key)
 
 
-(define song1key (genre-key 
+(define song1key (genre-key
         '(("easy listening" . 7/443)
-            ("metal" . 15/443)
-            ("new age" . 14/443)
-            ("gospel & religious" . 7/443)
-            ("classical" . 400/443))))
+          ("metal" . 15/443)
+          ("new age" . 14/443)
+          ("gospel & religious" . 7/443)
+          ("classical" . 400/443))))
+
 (define song2key (genre-key
         '(("easy listening" . 67/329)
-            ("electronica/dance" . 103/329)
-            ("pop" . 135/329)
-            ("folk" . 17/329)
-            ("alternative & punk" . 1/47))))
+          ("electronica/dance" . 103/329)
+          ("pop" . 135/329)
+          ("folk" . 17/329)
+          ("alternative & punk" . 1/47))))
 (define song3key (genre-key
         '(("alternative & punk" . 2/31)
-            ("electronica/dance" . 33/124)
-            ("new age" . 33/124)
-            ("classical" . 25/62))))
+          ("electronica/dance" . 33/124)
+          ("new age" . 33/124)
+          ("classical" . 25/62))))
 
 (define keys-db (list song1key song2key song3key))
 
