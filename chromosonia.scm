@@ -56,7 +56,7 @@
              [title #f]
              [genre/count '()]
              [clr (hash-ref genre-colour-hash "unclassifiable")])
-      
+
       (define/public (get-beat)
             (cond [(not (zero? (vector-length beat-pattern)))
                        (let ([pattern-frame (inexact->exact
@@ -98,7 +98,7 @@
                                          (if (> (cdr x) (cdr m))
                                            x
                                            m))
-                                   (cons "unclassified" 0)
+                                   (cons "unclassifiable" 0)
                                    genre/count))))
 
             ; genre colour is the mix of all genres
