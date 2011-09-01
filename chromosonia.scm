@@ -186,8 +186,23 @@
                 "c")
             (pixels-upload))))
 
+(define (beat-pattern-vis track)
+    (let* ([pos (send track get-position)]
+           [offset (+ (vx pos) (* (vy pos) fc-pixels-width))]
+           [clr (send track get-colour)]
+           [beat (send track get-beat)])
+      (with-primitive fc-pixels
+            (pdata-set! "c" offset (vmul clr beat))
+            (pixels-upload))))
+
+(define last-state 'nothing)
+
 (define (mainloop)
   (define state (get-state))
+
+  (when (not (eq? last-state state))
+        (displayln state))
+  (set! last-state state)
 
   (case state
     [(enter) ; new track starts
@@ -211,7 +226,12 @@
 
     [(exit) ; track ends
             ; set the beat pattern
-            (send current-track set-beat-pattern! (beat-pattern))
+            (send current-track set-beat-pattern! (beat-pattern))]
+
+    [(beat)
+            (beat-pattern-vis current-track)]
+
+    [(idle)
             (set! current-track #f)])
 
     ; update facade controller
