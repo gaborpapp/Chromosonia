@@ -109,14 +109,23 @@
 
 ; calculate mapping
 (define (setup-facade-mapping)
-  (map-side main-building-north #(0 0))
-  (map-side main-building-west #(10 0))
   (map-side main-building-south #(20 1))
   (map-side main-building-east #(30 1))
   (map-side main-building-south-street-level #(19 23))
   (map-side futurelab-south #(33 17))
   (map-side futurelab-east #(56 17))
-  (map-side futurelab-north #(61 17)))
+
+  ; linear mapping of back sides
+  #|
+  (map-side main-building-north #(0 0))
+  (map-side main-building-west #(10 0))
+  (map-side futurelab-north #(61 17))
+  |#
+
+  ; overlapped mapping of back sides
+  (map-side main-building-north #(20 0))
+  (map-side main-building-west #(30 0))
+  (map-side futurelab-north #(48 17)))
 
 ; mask holding all the occupied pixels which can be
 ; used to build a disjoint grid layout with chromosonia
@@ -153,8 +162,13 @@
   (add-to-mask main-building-south-street-level #(19 23))
   (add-to-mask futurelab-south #(33 17))
   (add-to-mask futurelab-east #(56 17))
-  (set! fc-mask (list->vector fc-mask)))
 
+  ; overlapped back sides
+  (add-to-mask main-building-north #(20 0))
+  (add-to-mask main-building-west #(30 0))
+  (add-to-mask futurelab-north #(48 17))
+
+  (set! fc-mask (list->vector fc-mask)))
 
 ; (fc-update)
 ;

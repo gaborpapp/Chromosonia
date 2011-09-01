@@ -6,7 +6,7 @@
 
 ;(define host "169.254.73.149")
 
-(define host "192.168.1.189")
+(define host "192.168.2.2")
 
 (texture-params 0 '(min nearest mag nearest))
 

@@ -8,7 +8,9 @@
 
 (clear)
 
-(define host "192.168.1.189")
+(define host "192.168.2.2")
+
+(define beat-duration 5)
 
 (texture-params 0 '(min nearest mag nearest))
 
@@ -17,6 +19,9 @@
 (init-audio)
 (disjoint-grid-layout (vector fc-pixels-width fc-pixels-height 0)
                       fc-mask)
+(genre-map-layout (length genres)
+                  (vector fc-pixels-width fc-pixels-height 0)
+                  fc-mask)
 
 ; list holding all previously heard tracks
 (define tracks '())
@@ -55,7 +60,8 @@
              [artist #f]
              [title #f]
              [genre/count '()]
-             [clr (hash-ref genre-colour-hash "unclassifiable")])
+             [clr (hash-ref genre-colour-hash "unclassifiable")]
+             [key #f])
 
       (define/public (get-beat)
             (cond [(not (zero? (vector-length beat-pattern)))
@@ -81,6 +87,8 @@
 
       (define/public (set-genre/count! gc)
             (set! genre/count gc)
+            (set! key (genre-key gc))
+            (add-to-genre-map key)
             (calculate-genre-colour))
 
       (define/public (identified?)
@@ -88,6 +96,11 @@
 
       (define/public (get-colour)
             clr)
+
+      (define/public (get-position)
+            (if key
+                (genre-map-lookup key)
+                #(0 0 0)))
 
       (define (calculate-genre-colour)
             ; genre colour is the genre with maximum value
@@ -109,24 +122,51 @@
                            #(0 0 0)
                            genre/count)))
 
+        ;; (genre-key genre-list)
+        ;; this function returns a vector with N elements, where N is the num of genres.
+        ;; genre-list is a list of max genre/count pairs.
+        ;; each element in the returned vector represents a genre. value is the normalized weight
+        ;; for that genre.
+
+        (define (genre-key gc-list)
+            (define (list-index elem lst)
+                (- (length lst) (length (member elem lst))))
+
+            (define key (make-vector (length genres) 0))
+
+            (for ([gc gc-list])
+                (let ([genre (car gc)]
+                        [val (cdr gc)])
+                    (vector-set! key (list-index genre genres) val)))
+            key)
+
       (super-new)))
 
 ;; (get-state)
-;; -> symbol, one of '(enter, process, exit, idle)
+;; -> symbol, one of '(enter, process, exit, idle, beat)
 (define get-state
-  (let ([last-state 0])
+  (let ([last-inside 0]
+        [last-state 'idle]
+        [beat-start (- beat-duration)])
     (lambda ()
-      (let ([inside (inside-event)])
-        (begin0
-            (cond [(= inside 1)
-                   (if (= last-state 0)
-                        'enter
-                        'process)]
-                  [else
-                   (if (= last-state 1)
-                        'exit
-                        'idle)])
-            (set! last-state inside))))))
+      (let* ([inside (inside-event)]
+             [state (cond [(= inside 1)
+                            (if (= last-inside 0)
+                                'enter
+                                'process)]
+                          [else
+                              (cond [(= last-inside 1)
+                                        'exit]
+                                  [(eq? last-state 'exit)
+                                        (set! beat-start (time))
+                                        'beat]
+                                  [(< (time) (+ beat-start beat-duration))
+                                        'beat]
+                                  [else
+                                        'idle])])])
+            (set! last-inside inside)
+            (set! last-state state)
+            state))))
 
 ; (perceptual-vis track)
 ; uploads the perceptual visualization data to the facade controller
