@@ -185,4 +185,6 @@ const SOM::ActivationPattern* SonotopyInterface::getDisjointGridMapActivationPat
 void SonotopyInterface::resetAdaptations() {
   circleMap->resetAdaptation();
   gridMap->resetAdaptation();
+  if(disjointGridMap)
+    disjointGridMap->resetAdaptation();
 }
