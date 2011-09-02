@@ -121,6 +121,24 @@ Scheme_Object *SchemeHelper::FloatsToScheme(float *src, unsigned int size)
 	return ret;
 }
 
+Scheme_Object *SchemeHelper::IntsToScheme(int *src, unsigned int size)
+{
+	Scheme_Object *ret=NULL;
+	Scheme_Object *tmp=NULL;
+	MZ_GC_DECL_REG(2);
+	MZ_GC_VAR_IN_REG(0, ret);
+	MZ_GC_VAR_IN_REG(1, tmp);
+	MZ_GC_REG();
+	ret = scheme_make_vector(size, scheme_void);
+	for (unsigned int n=0; n<size; n++)
+	{
+		tmp=scheme_make_integer_value(src[n]);
+		SCHEME_VEC_ELS(ret)[n]=tmp;
+	}
+	MZ_GC_UNREG();
+	return ret;
+}
+
 bool SchemeHelper::IsSymbol(Scheme_Object *src, const string &symbol)
 {
 	MZ_GC_DECL_REG(1);

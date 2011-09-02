@@ -16,12 +16,15 @@
 
 #include <escheme.h>
 #include <iostream>
-#include <iterator> // TEMP
+#include <iterator>
 #include <jack/jack.h>
 #include "SonotopyInterface.h"
 #include "EchonestInterface.hpp"
 #include "SchemeHelper.h"
 #include <pthread.h>
+#include <map>
+#include <algorithm>
+#include <sonotopy/TwoDimArray.hpp>
 
 const static float BEAT_PATTERN_CROSSFADE_MS = 1500;
 
@@ -37,11 +40,142 @@ EchonestInterface *echonestInterface = NULL;
 pthread_mutex_t mutex;
 bool insideEvent = false;
 
+class DisjointGridMapFlattenedClassifier {
+public:
+  class Node {
+  public:
+    unsigned int id;
+    vector<SOM::Sample> inputs;
+  };
+
+  DisjointGridMapFlattenedClassifier(const SOM *_som) {
+    som = _som;
+    topology = (DisjointGridTopology*) som->getTopology();
+    gridWidth = topology->getGridWidth();
+    gridHeight = topology->getGridHeight();
+    space = NULL;
+    outdated = true;
+  }
+
+  void addInput(const SOM::Sample &input) {
+    inputs.push_back(input);
+  }
+
+  const vector<SOM::Sample> &getInputs() {
+    return inputs;
+  }
+
+  void classify(const SOM::Sample &input, unsigned int &x, unsigned int &y) {
+    if(outdated)
+      updateClassifications();
+    TwoDimArray<Node>::Iterator i = classifications[input];
+    x = i->column;
+    y = i->row;
+  }
+
+  void invalidate() {
+    outdated = true;
+  }
+
+private:
+  void updateClassifications() {
+    createClassificationSpace();
+    flattenClassificationSpace();
+    storeClassifications();
+    outdated = false;
+  }
+
+  void createClassificationSpace() {
+    if(space) delete space;
+    space = new TwoDimArray<Node>(gridHeight, gridWidth);
+    unsigned int x, y;
+    for(vector<SOM::Sample>::iterator i = inputs.begin(); i != inputs.end(); i++) {
+      unsigned int nodeId = som->getWinner(*i);
+      topology->idToGridCoordinates(nodeId, x, y);
+      space->get(y, x).inputs.push_back(*i);
+    }
+  }
+
+  void flattenClassificationSpace() {
+    TwoDimArray<Node>::Iterator mostCrowdedNode;
+    while((mostCrowdedNode = findMostCrowdedNode()) != space->end()) {
+      if(!nudgeNode(mostCrowdedNode))
+	break;
+    }
+  }
+
+  TwoDimArray<Node>::Iterator findMostCrowdedNode() {
+    int maxSize = 1;
+    TwoDimArray<Node>::Iterator mostCrowdedNode = space->end();
+    for(TwoDimArray<Node>::Iterator i = space->begin(); i != space->end(); i++) {
+      int size = i->value->inputs.size();
+      if(size > maxSize) {
+	mostCrowdedNode = i;
+	maxSize = size;
+      }
+    }
+    return mostCrowdedNode;
+  }
+
+  bool nudgeNode(TwoDimArray<Node>::Iterator node) {
+    int minSize = node->value->inputs.size() - 1;
+    bool foundLessCrowdedNeighbour = false;
+    int leastCrowdedNeighbourX, leastCrowdedNeighbourY;
+    unsigned int ny1 = (unsigned int) max((int)node->row - 1, 0);
+    unsigned int ny2 = min(node->row + 1, gridHeight - 1);
+    unsigned int nx1 = (unsigned int) max((int)node->column - 1, 0);
+    unsigned int nx2 = min(node->column + 1, gridWidth - 1);
+    for(unsigned int ny = ny1; ny <= ny2; ny++) {
+      for(unsigned int nx = nx1; nx <= nx2; nx++) {
+	if(nx != node->row && ny != node->column &&
+	   topology->containsCoordinates(nx, ny)) {
+	  int size = space->get(ny, nx).inputs.size();
+	  if(size < minSize) {
+	    foundLessCrowdedNeighbour = true;
+	    leastCrowdedNeighbourX = nx;
+	    leastCrowdedNeighbourY = ny;
+	    minSize = size;
+	  }
+	}
+      }
+    }
+    if(foundLessCrowdedNeighbour) {
+      reclassifyInput(node->row, node->column,
+		      leastCrowdedNeighbourY, leastCrowdedNeighbourX);
+      return true;
+    }
+    else
+      return false;
+  }
+
+  void reclassifyInput(unsigned int sourceY, unsigned int sourceX,
+		       unsigned int destY, unsigned int destX) {
+    SOM::Sample input = space->get(sourceY, sourceX).inputs.back();
+    space->get(destY, destX).inputs.push_back(input);
+    space->get(sourceY, sourceX).inputs.pop_back();
+  }
+
+  void storeClassifications() {
+    for(TwoDimArray<Node>::Iterator i = space->begin(); i != space->end(); i++) {
+      for(vector<SOM::Sample>::iterator j = i->value->inputs.begin(); j != i->value->inputs.end(); j++)
+	classifications[*j] = i;
+    }
+  }
+
+  const SOM *som;
+  bool outdated;
+  DisjointGridTopology *topology;
+  vector<SOM::Sample> inputs;
+  TwoDimArray<Node> *space;
+  map< SOM::Sample, TwoDimArray<Node>::Iterator > classifications;
+  unsigned int gridWidth, gridHeight;
+};
+
 SOM *genreMap = NULL;
 DisjointGridTopology *genreMapTopology;
 unsigned int genreMapWidth, genreMapHeight;
 unsigned int numGenres = 0;
-vector<SOM::Sample> genreKeys;
+DisjointGridMapFlattenedClassifier *genreClassifier;
 
 void setGenreMapLayout(unsigned int numGenres,
 		       unsigned int width,
@@ -58,7 +192,7 @@ void setGenreMapLayout(unsigned int numGenres,
   genreMap->setLearningParameter(0.01);
   genreMap->setNeighbourhoodParameter(0.7);
   genreMap->setRandomModelValues(0, numGenres);
-  genreKeys.clear();
+  genreClassifier = new DisjointGridMapFlattenedClassifier(genreMap);
 }
 
 class BeatPattern {
@@ -655,7 +789,7 @@ Scheme_Object *add_to_genre_map(int argc, Scheme_Object **argv) {
   vector<float> key = SchemeHelper::FloatVectorFromScheme(argv[0]);
   if(genreMap) {
     if(key.size() == numGenres)
-      genreKeys.push_back(key);
+      genreClassifier->addInput(key);
     else
       cerr << "illegal genre key size: expected " << numGenres << " but got " << key.size() << endl;
   }
@@ -666,8 +800,10 @@ Scheme_Object *add_to_genre_map(int argc, Scheme_Object **argv) {
 
 Scheme_Object *update_genre_map_globally(int argc, Scheme_Object **argv) {
   if(genreMap) {
-    for(vector<SOM::Sample>::const_iterator i = genreKeys.begin(); i != genreKeys.end(); i++)
+    for(vector<SOM::Sample>::const_iterator i = genreClassifier->getInputs().begin();
+	i != genreClassifier->getInputs().end(); i++)
       genreMap->train(*i);
+    genreClassifier->invalidate();
   }
   else
     cerr << "tried to update genre map but genre map not initialized" << endl;
@@ -679,11 +815,12 @@ Scheme_Object *update_genre_map_partially(int argc, Scheme_Object **argv) {
   static unsigned int keyNum = 0;
   if(genreMap) {
     for(int i = 0; i < numIterations; i++) {
-      if(keyNum >= genreKeys.size())
+      if(keyNum >= genreClassifier->getInputs().size())
 	keyNum = 0;
-      genreMap->train(genreKeys[keyNum]);
+      genreMap->train(genreClassifier->getInputs()[keyNum]);
       keyNum++;
     }
+    genreClassifier->invalidate();
   }
   else
     cerr << "tried to update genre map but genre map not initialized" << endl;
@@ -693,8 +830,10 @@ Scheme_Object *update_genre_map_partially(int argc, Scheme_Object **argv) {
 Scheme_Object *train_genre_map_with_key(int argc, Scheme_Object **argv) {
   vector<float> key = SchemeHelper::FloatVectorFromScheme(argv[0]);
   if(genreMap) {
-    if(key.size() == numGenres)
+    if(key.size() == numGenres) {
       genreMap->train(key);
+      genreClassifier->invalidate();
+    }
     else
       cerr << "illegal genre key size: expected " << numGenres << " but got " << key.size() << endl;
   }
@@ -705,7 +844,7 @@ Scheme_Object *train_genre_map_with_key(int argc, Scheme_Object **argv) {
 
 Scheme_Object *genre_map_lookup(int argc, Scheme_Object **argv) {
   Scheme_Object *result = NULL;
-  MZ_GC_DECL_REG(3);
+  MZ_GC_DECL_REG(2);
   MZ_GC_VAR_IN_REG(0, result);
   MZ_GC_VAR_IN_REG(1, argv);
   MZ_GC_REG();
@@ -714,9 +853,8 @@ Scheme_Object *genre_map_lookup(int argc, Scheme_Object **argv) {
   vector<float> key = SchemeHelper::FloatVectorFromScheme(argv[0]);
   if(genreMap) {
     if(key.size() == numGenres) {
-      unsigned int nodeId = genreMap->getWinner(key);
       unsigned int ux, uy;
-      genreMapTopology->idToGridCoordinates(nodeId, ux, uy);
+      genreClassifier->classify(key, ux, uy);
       x = ux;
       y = uy;
     }
@@ -726,9 +864,8 @@ Scheme_Object *genre_map_lookup(int argc, Scheme_Object **argv) {
   else
     cerr << "tried to lookup from genre map but genre map not initialized" << endl;
 
-  result = scheme_make_vector(2, scheme_void);
-  SCHEME_VEC_ELS(result)[0] = scheme_make_integer_value(x);
-  SCHEME_VEC_ELS(result)[1] = scheme_make_integer_value(y);
+  int xy[2] = {x, y};
+  result = SchemeHelper::IntsToScheme(xy, 2);
 
   MZ_GC_UNREG();
   return result;
@@ -741,9 +878,10 @@ Scheme_Object *print_genre_map(int argc, Scheme_Object **argv) {
 }
 
 Scheme_Object *print_genre_map_keys(int argc, Scheme_Object **argv) {
-  cerr << genreKeys.size() << " key(s):" << endl;
+  cerr << genreClassifier->getInputs().size() << " key(s):" << endl;
   int n = 1;
-  for(vector<SOM::Sample>::const_iterator i = genreKeys.begin(); i != genreKeys.end(); i++) {
+  for(vector<SOM::Sample>::const_iterator i = genreClassifier->getInputs().begin();
+      i != genreClassifier->getInputs().end(); i++) {
     cerr << "key " << n << ":" << endl;
     copy(i->begin(), i->end(), ostream_iterator<float> (cerr, " "));
     cerr << endl;
