@@ -14,6 +14,7 @@
 (define host "192.168.2.2")
 
 (define beat-duration 5)
+(define social-transition-duration 5)
 
 (texture-params 0 '(min nearest mag nearest))
 
@@ -78,7 +79,7 @@
             (set! genre/count gc)
             (set! key (genre-key gc))
             (add-to-genre-map key)
-	    (update-genre-map-partially 100))
+			(update-genre-map-partially 100)
             (calculate-genre-colour))
 
       (define/public (identified?)
@@ -152,9 +153,8 @@
         (with-primitive fc-pixels
             (pdata-index-map!
                 (λ (i c)
-                  (vclamp (vadd #(0.01 0.01 0.01)
-                                (vmul clr
-                                      (expt (vector-ref pattern i) 10.0)))))
+					(vmul clr
+						  (expt (vector-ref pattern i) 10.0)))
                 "c")
             (pixels-upload))))
 
@@ -252,7 +252,7 @@
               (perceptual-vis current-track))]
 
     [(exit) ; track ends
-             (set! beat-start (time))
+            (set! beat-start (time))
             ; set the beat pattern
             (send current-track set-beat-pattern! (beat-pattern))
             ; save the frame for the transition
