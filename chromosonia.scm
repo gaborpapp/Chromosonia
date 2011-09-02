@@ -106,6 +106,7 @@
             (set! genre/count gc)
             (set! key (genre-key gc))
             (add-to-genre-map key)
+	    (update-genre-map-partially 100))
             (calculate-genre-colour))
 
       (define/public (identified?)
