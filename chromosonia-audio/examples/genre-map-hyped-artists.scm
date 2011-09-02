@@ -17,7 +17,8 @@
                   fc-mask)
 
 (for ([key keys-db])
-    (add-to-genre-map key))
+    (add-to-genre-map key)
+    (update-genre-map-partially 100))
 
 
 ;; simple visualization
@@ -31,7 +32,6 @@
     (hint-wire))
 
 (define (render)
-    (update-genre-map)
     (with-primitive fc-pixels
         (pdata-map! (lambda (c) .3) "c")
         (for ([key keys-db])

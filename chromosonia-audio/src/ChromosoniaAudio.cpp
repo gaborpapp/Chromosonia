@@ -55,7 +55,7 @@ void setGenreMapLayout(unsigned int numGenres,
   genreMapHeight = height;
   genreMapTopology = new DisjointGridTopology(width, height, nodes);
   genreMap = new SOM(numGenres, genreMapTopology);
-  genreMap->setLearningParameter(0.05);
+  genreMap->setLearningParameter(0.01);
   genreMap->setNeighbourhoodParameter(0.7);
   genreMap->setRandomModelValues(0, numGenres);
   genreKeys.clear();
@@ -664,13 +664,42 @@ Scheme_Object *add_to_genre_map(int argc, Scheme_Object **argv) {
   return scheme_void;
 }
 
-Scheme_Object *update_genre_map(int argc, Scheme_Object **argv) {
+Scheme_Object *update_genre_map_globally(int argc, Scheme_Object **argv) {
   if(genreMap) {
     for(vector<SOM::Sample>::const_iterator i = genreKeys.begin(); i != genreKeys.end(); i++)
       genreMap->train(*i);
   }
   else
     cerr << "tried to update genre map but genre map not initialized" << endl;
+  return scheme_void;
+}
+
+Scheme_Object *update_genre_map_partially(int argc, Scheme_Object **argv) {
+  int numIterations = SchemeHelper::IntFromScheme(argv[0]);
+  static unsigned int keyNum = 0;
+  if(genreMap) {
+    for(int i = 0; i < numIterations; i++) {
+      if(keyNum >= genreKeys.size())
+	keyNum = 0;
+      genreMap->train(genreKeys[keyNum]);
+      keyNum++;
+    }
+  }
+  else
+    cerr << "tried to update genre map but genre map not initialized" << endl;
+  return scheme_void;
+}
+
+Scheme_Object *train_genre_map_with_key(int argc, Scheme_Object **argv) {
+  vector<float> key = SchemeHelper::FloatVectorFromScheme(argv[0]);
+  if(genreMap) {
+    if(key.size() == numGenres)
+      genreMap->train(key);
+    else
+      cerr << "illegal genre key size: expected " << numGenres << " but got " << key.size() << endl;
+  }
+  else
+    cerr << "tried to add genre key but genre map not initialized" << endl;
   return scheme_void;
 }
 
@@ -1007,8 +1036,12 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
 		    scheme_make_prim_w_arity(add_to_genre_map, "add-to-genre-map", 1, 1), menv);
   scheme_add_global("genre-map-lookup",
 		    scheme_make_prim_w_arity(genre_map_lookup, "genre-map-lookup", 1, 1), menv);
-  scheme_add_global("update-genre-map",
-		    scheme_make_prim_w_arity(update_genre_map, "update-genre-map", 0, 0), menv);
+  scheme_add_global("update-genre-map-globally",
+		    scheme_make_prim_w_arity(update_genre_map_globally, "update-genre-map-globally", 0, 0), menv);
+  scheme_add_global("update-genre-map-partially",
+		    scheme_make_prim_w_arity(update_genre_map_partially, "update-genre-map-partially", 1, 1), menv);
+  scheme_add_global("train-genre-map-with-key",
+		    scheme_make_prim_w_arity(train_genre_map_with_key, "train-genre-map-with-key", 1, 1), menv);
   scheme_add_global("print-genre-map",
 		    scheme_make_prim_w_arity(print_genre_map, "print-genre-map", 0, 0), menv);
   scheme_add_global("print-genre-map-keys",
