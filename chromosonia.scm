@@ -1,5 +1,6 @@
 ;; chromosonia
 
+(require racket/math)
 (require racket/class)
 (require racket/vector)
 (require racket/serialize)
@@ -108,7 +109,7 @@
                     (foldl (lambda (x a)
                              (vadd a
                                  (vmul (hash-ref genre-colour-hash (car x)) (cdr x))))
-                           #(0 0 0)
+                           #(0 0 0 0)
                            genre/count)))
 
       (super-new))
@@ -157,18 +158,56 @@
                 "c")
             (pixels-upload))))
 
+;; beat pattern
+
+; helper functions to get and set the whole pdata
+(define (pdata-list-ref type)
+    (for/list ([i (in-range (pdata-size))])
+        (pdata-ref type i)))
+
+(define (pdata-list-set type vals)
+    (for/list ([i (in-range (pdata-size))])
+        (pdata-set! type i (list-ref vals i))))
+
+; to hold the data of the perceptual visualization's last frame
+(define fc-perceptual (build-pixels fc-pixels-width fc-pixels-height))
+(with-primitive fc-perceptual
+        (scale 0))
+
 ;; (beat-pattern-vis track)
+;;     v : number (0 - 1) for transition from perceptual to beat-pattern
 ;; uploads the beat-pattern visualization data to the facade controller
 ;; buffer
 
-(define (beat-pattern-vis track)
+(define (beat-pattern-vis track v)
     (let* ([pos (send track get-position)]
            [offset (+ (vx pos) (* (vy pos) fc-pixels-width))]
            [clr (send track get-colour)]
-           [beat (send track get-beat)])
+           [beat (send track get-beat)]
+           [beat-clr (vmul clr (* v beat))]
+           [ppixels (with-primitive fc-perceptual
+                            (pdata-list-ref "c"))]
+           [max-dist (* (- 1 v) (sqrt (+ (sqr fc-pixels-width)
+                                        (sqr fc-pixels-height))))])
       (with-primitive fc-pixels
-            (pdata-set! "c" offset (vmul clr beat))
+            ; zooming
+            (when (> max-dist 0)
+                (for* ([x (in-range fc-pixels-width)]
+                       [y (in-range fc-pixels-height)])
+                    (let ([dist (vdist (vector (vx pos) (vy pos) 0) (vector x y 0))]
+                          [offs (+ x (* y fc-pixels-width))])
+                      (pdata-set! "c" offs
+                            (vlerp (vmul (list-ref ppixels offs) (- 1 v))
+                                  (vmul beat-clr v)
+                                  (* v (sin (* (clamp (/ dist max-dist) 1 2)
+                                          (* pi .5)))))))))
+
+            ; beat pattern
+            (pdata-set! "c" offset beat-clr)
             (pixels-upload))))
+
+;; (social-vis)
+;;
 
 (define (social-vis)
     (with-primitive fc-pixels
@@ -180,7 +219,9 @@
                 (pdata-set! "c" offset (vmul clr beat))))
         (pixels-upload)))
 
+
 (define last-state 'nothing)
+(define beat-start 0)
 
 (define (mainloop)
   (define state (get-state))
@@ -211,11 +252,18 @@
               (perceptual-vis current-track))]
 
     [(exit) ; track ends
+             (set! beat-start (time))
             ; set the beat pattern
-            (send current-track set-beat-pattern! (beat-pattern))]
+            (send current-track set-beat-pattern! (beat-pattern))
+            ; save the frame for the transition
+            (let ([pixels (with-primitive fc-pixels
+                                (pdata-list-ref "c"))])
+              (with-primitive fc-perceptual
+                    (pdata-list-set "c" pixels)))]
 
     [(beat)
-            (beat-pattern-vis current-track)]
+            (let ([v (clamp (/ (- (time) beat-start) beat-duration))])
+                (beat-pattern-vis current-track v))]
 
     [(idle)
             (social-vis)
