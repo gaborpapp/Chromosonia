@@ -7,7 +7,8 @@
 	genres
 	get-genre
 	get-topgenres/count
-	get-topgenres/count-normalized)
+	get-topgenres/count-normalized
+	get-hyped-artists)
 
 (define api-key "e41bd2650f381f8b6975ee5bc2109516")
 
@@ -441,7 +442,7 @@
 			("sludge" . "metal")
 			("smooth jazz" . "jazz")
 			("smooth" . "easy listening")
-			("soft rock" . "soft rock")
+			("soft rock" . "rock")
 			("soul" . "r&b")
 			("soundtracks" . "soundtrack")
 			("southern gospel" . "gospel & religious")
@@ -581,3 +582,17 @@
 
 ;(write-genre-similarity-hash "similar.scm")
 
+
+(define (get-hyped-artists)
+	(define lastfm-port (get-pure-port
+				(string->url (string-append "http://ws.audioscrobbler.com/2.0/?method=chart.gettopartists"
+											"&api_key=" api-key))))
+
+	(define tag-name-regexp ; <name>tag</name>
+		#rx"<name>(.+)</name>")
+	(filter
+		(lambda (x) (not (void? x)))
+		(for/list ([line (in-lines lastfm-port)])
+			  (define tag (regexp-match tag-name-regexp line))
+			  (when tag
+				(cadr tag)))))
