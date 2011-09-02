@@ -16,12 +16,20 @@
                   (vector fc-pixels-width fc-pixels-height 0)
                   fc-mask)
 
-(for ([key keys-db])
-    (add-to-genre-map key)
+(for ([descriptor genre-descriptor-db])
+    (add-to-genre-map (genre-key descriptor))
     (update-genre-map-partially 100))
 
 
 ;; simple visualization
+
+(define (genre-colour descriptor)
+  ;; genre colour is the mix of all genres
+  (foldl (lambda (x a)
+	   (vadd a
+		 (vmul (hash-ref genre-colour-hash (car x)) (cdr x))))
+	 #(0 0 0)
+	 descriptor))
 
 (set-camera-transform (mtranslate #(0 0 -37)))
 
@@ -36,9 +44,9 @@
         (pdata-map! (lambda (c) 0) "c")
 	(for ([pos fc-mask])
 	     (pdata-set! "c" (+ (* (vy pos) fc-pixels-width) (vx pos)) .3))
-        (for ([key keys-db])
-            (let ([pos (genre-map-lookup key)])
-                (pdata-set! "c" (+ (* (vy pos) fc-pixels-width) (vx pos)) 1)))
+        (for ([descriptor genre-descriptor-db])
+            (let ([pos (genre-map-lookup (genre-key descriptor))])
+                (pdata-set! "c" (+ (* (vy pos) fc-pixels-width) (vx pos)) (genre-colour descriptor))))
         (pixels-upload)))
 
 (every-frame (render))

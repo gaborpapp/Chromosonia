@@ -3,16 +3,9 @@
 
 (define (write-hyped-artists-db file)
 	(define out (open-output-file file))
-	(let ([keys-db
-	       (filter (lambda (key) key)
-		       (for/list ([artist (get-hyped-artists)])
-				 (let ([artistgenres (get-topgenres/count-normalized artist)])
-				   (cond [artistgenres
-					  (let ([key (genre-key artistgenres)])
-					    (cond [key key])
-					    )
-					  ])))
-		       )
+	(let ([genre-descriptor-db
+	       (for/list ([artist (get-hyped-artists)])
+			 (get-topgenres/count-normalized artist))
 	       ])
-	  (fprintf out "(define keys-db ~a)~n" keys-db))
+	  (fprintf out "(define genre-descriptor-db ~v)~n" genre-descriptor-db))
 	(close-output-port out))
