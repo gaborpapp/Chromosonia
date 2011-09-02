@@ -33,7 +33,9 @@
 
 (define (render)
     (with-primitive fc-pixels
-        (pdata-map! (lambda (c) .3) "c")
+        (pdata-map! (lambda (c) 0) "c")
+	(for ([pos fc-mask])
+	     (pdata-set! "c" (+ (* (vy pos) fc-pixels-width) (vx pos)) .3))
         (for ([key keys-db])
             (let ([pos (genre-map-lookup key)])
                 (pdata-set! "c" (+ (* (vy pos) fc-pixels-width) (vx pos)) 1)))
