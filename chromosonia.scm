@@ -61,8 +61,7 @@
     (lambda (key value)
         (hash-set! genre-colour-hash key (hsv->rgb value))))
 
-(define track%
-  (class object%
+(define-serializable-class* track% object% (externalizable<%>)
       (field [framerate (beat-pattern-framerate)] ; based on jack settings - constant
              [beat-pattern #()]
              [artist #f]
@@ -70,6 +69,15 @@
              [genre/count '()]
              [clr (hash-ref genre-colour-hash "unclassifiable")]
              [key #f])
+
+	  (define/public (externalize) 
+		   (list framerate beat-pattern artist title))
+
+	  (define/public (internalize v)
+		   (set! framerate (list-ref v 0))
+		   (set! beat-pattern (list-ref v 1))
+		   (set! artist (list-ref v 2))
+		   (set! title (list-ref v 3)))
 
       (define/public (get-beat)
             (cond [(not (zero? (vector-length beat-pattern)))
@@ -148,7 +156,7 @@
                     (vector-set! key (list-index genre genres) val)))
             key)
 
-      (super-new)))
+      (super-new))
 
 ;; (get-state)
 ;; -> symbol, one of '(enter, process, exit, idle, beat)
