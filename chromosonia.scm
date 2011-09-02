@@ -28,30 +28,38 @@
 
 (define current-track #f)
 
-(define genre-colour-hash
-  #hash(("alternative & punk" . #(1 0 0))
-        ("books & spoken" . #(0 1 0))
-        ("blues" . #(0 0 1))
-        ("children’s music" . #(1 1 0))
-        ("classical" . #(0 1 1))
-        ("country" . #(1 0 1))
-        ("easy listening" . #(.5 .1 0))
-        ("electronica/dance" . #(.9 .7 0))
-        ("folk" . #(.5 .7 .9))
-        ("gospel & religious" . #(.6 .5 .2))
-        ("hip hop/rap" . #(.6 .2 .8))
-        ("holiday" . #(.7 .4 .2))
-        ("jazz" . #(.2 .2 .5))
-        ("latin" . #(.9 .5 .8))
-        ("metal" . #(.8 .1 .3))
-        ("new age" . #(.1 .5 .1))
-        ("pop" . #(.0 .4 .8))
-        ("reggae" . #(.9 .8 .3))
-        ("r&b" . #(.5 .3 .1))
-        ("rock" . #(.7 .2 .9))
-        ("soundtrack" . #(.5 .3 .1))
-        ("unclassifiable" . #(.5 .5 .5))
-        ("world" . #(.2 .5 .9))))
+; genre->colour mapping in hsv
+(define genre-colour-hsv
+  #hash(("alternative & punk" . #(0.045 1 1))
+        ("rock" . #(0.09 1 1))
+        ("latin" . #(0.136 1 1))
+        ("children’s music" . #(0.181 1 1))
+        ("classical" . #(0.227 1 1))
+        ("country" . #(0.272 1 .5))
+        ("reggae" . #(.318 1 .7))
+        ("hip hop/rap" . #(.3635 1 1))
+        ("folk" . #(.409 1 1))
+        ("gospel & religious" . #(0.454 1 1))
+        ("electronica/dance" . #(.499 1 1))
+        ("holiday" . #(.545 1 1))
+        ("jazz" . #(.59 1 1))
+        ("blues" . #(.636 1 1))
+        ("world" . #(.681 1 .6))
+        ("new age" . #(.727 1 1))
+        ("pop" . #(.772 1 1))
+        ("easy listening" . #(.818 1 1))
+        ("r&b" . #(.863 1 1))
+        ("books & spoken" . #(.908 1 1))
+        ("soundtrack" . #(.954 1 1))
+        ("unclassifiable" . #(1 0 1))
+        ("metal" . #(1 1 1))))
+
+; genre->colour in rgb
+(define genre-colour-hash (make-hash))
+(hash-for-each
+    genre-colour-hsv
+    (lambda (key value)
+        (hash-set! genre-colour-hash key (hsv->rgb value))))
 
 (define track%
   (class object%
@@ -168,9 +176,9 @@
             (set! last-state state)
             state))))
 
-; (perceptual-vis track)
-; uploads the perceptual visualization data to the facade controller
-; buffer
+;; (perceptual-vis track)
+;; uploads the perceptual visualization data to the facade controller
+;; buffer
 
 (define (perceptual-vis track)
     (define (vector2d->vector1d v)
@@ -186,8 +194,37 @@
                 "c")
             (pixels-upload))))
 
+;; (beat-pattern-vis track)
+;; uploads the beat-pattern visualization data to the facade controller
+;; buffer
+
+(define (beat-pattern-vis track)
+    (let* ([pos (send track get-position)]
+           [offset (+ (vx pos) (* (vy pos) fc-pixels-width))]
+           [clr (send track get-colour)]
+           [beat (send track get-beat)])
+      (with-primitive fc-pixels
+            (pdata-set! "c" offset (vmul clr beat))
+            (pixels-upload))))
+
+(define (social-vis)
+    (with-primitive fc-pixels
+        (for ([track tracks])
+            (let* ([pos (send track get-position)]
+                   [offset (+ (vx pos) (* (vy pos) fc-pixels-width))]
+                   [clr (send track get-colour)]
+                   [beat (send track get-beat)])
+                (pdata-set! "c" offset (vmul clr beat))))
+        (pixels-upload)))
+
+(define last-state 'nothing)
+
 (define (mainloop)
   (define state (get-state))
+
+  (when (not (eq? last-state state))
+        (displayln state))
+  (set! last-state state)
 
   (case state
     [(enter) ; new track starts
@@ -211,7 +248,13 @@
 
     [(exit) ; track ends
             ; set the beat pattern
-            (send current-track set-beat-pattern! (beat-pattern))
+            (send current-track set-beat-pattern! (beat-pattern))]
+
+    [(beat)
+            (beat-pattern-vis current-track)]
+
+    [(idle)
+            (social-vis)
             (set! current-track #f)])
 
     ; update facade controller
