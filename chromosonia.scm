@@ -5,6 +5,7 @@
 (require fluxus-018/chromosonia-audio)
 (require "lastfm/lastfm.ss")
 (require "facade-control/facade-control.ss")
+(require "genre-map.ss")
 
 (clear)
 
@@ -19,7 +20,7 @@
 (init-audio)
 (disjoint-grid-layout (vector fc-pixels-width fc-pixels-height 0)
                       fc-mask)
-(genre-map-layout (length genres)
+(genre-map-layout (genre-key-size)
                   (vector fc-pixels-width fc-pixels-height 0)
                   fc-mask)
 
@@ -137,24 +138,6 @@
                                  (vmul (hash-ref genre-colour-hash (car x)) (cdr x))))
                            #(0 0 0)
                            genre/count)))
-
-        ;; (genre-key genre-list)
-        ;; this function returns a vector with N elements, where N is the num of genres.
-        ;; genre-list is a list of max genre/count pairs.
-        ;; each element in the returned vector represents a genre. value is the normalized weight
-        ;; for that genre.
-
-        (define (genre-key gc-list)
-            (define (list-index elem lst)
-                (- (length lst) (length (member elem lst))))
-
-            (define key (make-vector (length genres) 0))
-
-            (for ([gc gc-list])
-                (let ([genre (car gc)]
-                        [val (cdr gc)])
-                    (vector-set! key (list-index genre genres) val)))
-            key)
 
       (super-new))
 

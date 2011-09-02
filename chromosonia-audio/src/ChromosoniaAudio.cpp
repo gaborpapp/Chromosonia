@@ -659,12 +659,18 @@ Scheme_Object *add_to_genre_map(int argc, Scheme_Object **argv) {
     else
       cerr << "illegal genre key size: expected " << numGenres << " but got " << key.size() << endl;
   }
+  else
+    cerr << "tried to add genre key but genre map not initialized" << endl;
   return scheme_void;
 }
 
 Scheme_Object *update_genre_map(int argc, Scheme_Object **argv) {
-  for(vector<SOM::Sample>::const_iterator i = genreKeys.begin(); i != genreKeys.end(); i++)
-    genreMap->train(*i);
+  if(genreMap) {
+    for(vector<SOM::Sample>::const_iterator i = genreKeys.begin(); i != genreKeys.end(); i++)
+      genreMap->train(*i);
+  }
+  else
+    cerr << "tried to update genre map but genre map not initialized" << endl;
   return scheme_void;
 }
 
@@ -688,6 +694,8 @@ Scheme_Object *genre_map_lookup(int argc, Scheme_Object **argv) {
     else
       cerr << "illegal genre key size: expected " << numGenres << " but got " << key.size() << endl;
   }
+  else
+    cerr << "tried to lookup from genre map but genre map not initialized" << endl;
 
   result = scheme_make_vector(2, scheme_void);
   SCHEME_VEC_ELS(result)[0] = scheme_make_integer_value(x);
@@ -700,6 +708,18 @@ Scheme_Object *genre_map_lookup(int argc, Scheme_Object **argv) {
 Scheme_Object *print_genre_map(int argc, Scheme_Object **argv) {
   if(genreMap)
     genreMap->writeModelData(cerr);
+  return scheme_void;
+}
+
+Scheme_Object *print_genre_map_keys(int argc, Scheme_Object **argv) {
+  cerr << genreKeys.size() << " key(s):" << endl;
+  int n = 1;
+  for(vector<SOM::Sample>::const_iterator i = genreKeys.begin(); i != genreKeys.end(); i++) {
+    cerr << "key " << n << ":" << endl;
+    copy(i->begin(), i->end(), ostream_iterator<float> (cerr, " "));
+    cerr << endl;
+    n++;
+  }
   return scheme_void;
 }
 
@@ -991,6 +1011,8 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
 		    scheme_make_prim_w_arity(update_genre_map, "update-genre-map", 0, 0), menv);
   scheme_add_global("print-genre-map",
 		    scheme_make_prim_w_arity(print_genre_map, "print-genre-map", 0, 0), menv);
+  scheme_add_global("print-genre-map-keys",
+		    scheme_make_prim_w_arity(print_genre_map_keys, "print-genre-map-keys", 0, 0), menv);
   scheme_add_global("beat-pattern",
 		    scheme_make_prim_w_arity(beat_pattern, "beat-pattern", 0, 0), menv);
   scheme_add_global("beat-pattern-framerate",
