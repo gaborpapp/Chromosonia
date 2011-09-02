@@ -57,10 +57,10 @@
         ("unclassifiable" . #(1 0 1))
         ("metal" . #(1 1 1))))
 
-; genre->colour in rgb
+; genre->colour in rgba
 (define genre-colour-hash (make-hash))
 (hash-for-each
     genre-colour-hsv
     (lambda (key value)
-        (hash-set! genre-colour-hash key (hsv->rgb value))))
+        (hash-set! genre-colour-hash key (vector-append (hsv->rgb value) #(1)))))
 
