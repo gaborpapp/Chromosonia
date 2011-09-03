@@ -4,6 +4,7 @@
 (require racket/class)
 (require racket/vector)
 (require racket/serialize)
+(require racket/system)
 (require fluxus-018/chromosonia-audio)
 (require "lastfm/lastfm.ss")
 (require "facade-control/facade-control.ss")
@@ -70,14 +71,43 @@
             (set! beat-pattern bp))
 
       (define/public (set-artist! a)
-             (displayln a)
+             (printf "artist: ~a~n" a)
              (set! artist a)
              (thread (lambda ()
                        (set-genre/count! (get-topgenres/count-normalized artist)))))
 
       (define/public (set-title! a)
-            (displayln a)
-            (set! title a))
+             (printf "title: ~a~n" a)
+             (set! title a))
+
+      (define artist-regexp
+            (pregexp "^Artist: (.+?)$"))
+      (define title-regexp
+            (pregexp "^Title: (.+?)$"))
+
+      (define (identify)
+            ; TODO: kill the process if it still exists when the sound stops
+            (displayln "starting track id process")
+            (define-values [stdout stdin id stderr proc]
+                           (vector->values (list->vector (process "./tests/trackid.py"))))
+            (proc 'wait)
+            (for ([l (in-lines stdout)])
+                 (displayln l)
+                 (let ([a (regexp-match artist-regexp l)]
+                       [t (regexp-match title-regexp l)])
+                   (when a
+                     (set-artist! (cadr a)))
+                   (when t
+                     (set-title! (cadr t)))))
+
+            (close-input-port stdout)
+            (close-input-port stderr)
+            (close-output-port stdin))
+
+      ; starts the track id process in a thread which sets
+      ; the artist and title variables, when ready
+      (define/public (start-track-id)
+            (thread identify))
 
       (define/public (set-genre/count! gc)
             (set! genre/count gc)
@@ -247,12 +277,16 @@
     [(enter) ; new track starts
             (reset-sonotopy)
             (set! current-track (make-object track%))
+            ; start track id
+            (send current-track start-track-id)
             (set! tracks (cons current-track
                                tracks))]
 
     [(process)
             ; set track id if we have information
             (when current-track
+              ; echoprint
+              #|
               (when (not (send current-track identified?))
                     (let ([a (artist)]
                           [s (song)])
@@ -260,6 +294,7 @@
                             (send current-track set-artist! a))
                         (when s
                             (send current-track set-title! s))))
+              |#
 
               ; perceptual visualization
               (perceptual-vis current-track))]
@@ -313,13 +348,13 @@
 ;(generate-hyped-tracks)
 ;(save-tracks "hyped-tracks.dat")
 
-(load-tracks "data/hyped-tracks.dat")
+;(load-tracks "data/hyped-tracks.dat")
 
 (set-camera-transform (mtranslate #(0 0 -37)))
 
 (with-primitive fc-pixels
-	(pdata-map!  (lambda (c) 0) "c")
-	(pixels-upload)
+    (pdata-map!  (lambda (c) 0) "c")
+    (pixels-upload)
     (identity)
     (scale (vector fc-pixels-width (- fc-pixels-height) 1))
     (hint-cull-ccw)

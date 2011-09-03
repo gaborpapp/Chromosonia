@@ -4,13 +4,12 @@ from com.android.monkeyrunner import MonkeyRunner, MonkeyDevice, MonkeyImage
 import os, time
 
 def shazam(snap_path):
-	sleep_seconds = 20
+	sleep_seconds = 24
 	print "Using shazam on android by monkeyrunner."
 	print "Path for the screenshot:", snap_path
-	print "Waiting for device to connect.."
-	dev = MonkeyRunner.waitForConnection()
-	print "Connected to device!"
-	print "pressing back button.."
+	print "Waiting for device to connect for 5 seconds..."
+	dev = MonkeyRunner.waitForConnection(5)
+	print "pressing back button..", dev
 	dev.press("KEYCODE_BACK","DOWN_AND_UP","dummy-param")
 	pack_act = 'com.shazam.android/com.shazam.android.Tagging'
 	print "Starting package/activity:", pack_act 
@@ -33,8 +32,22 @@ def ocr(snap_filename):
 	os.system('tesseract %s %s' % (tif_filename, basename))
 	f = open(ocr_filename)
 	lines = f.readlines()
+	artist = ''
+	song = ''
 	for l in lines:
-		print l
+		l = l.strip()
+		if not l:
+			continue;
+		if l in ['Sending', 'Matching', '-1115']:
+			artist = ''
+			song == ''
+			break
+		if not song:
+			song = l
+		else:
+			artist = l
+	print 'Artist:', artist
+	print 'Title:', song
 
 if __name__ == '__main__':
 	snap_filename = 'snaps/snap-' + time.strftime('%y%m%d%H%M%S') + '.png'
