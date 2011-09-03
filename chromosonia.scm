@@ -10,8 +10,6 @@
 (require "facade-control/facade-control.ss")
 (require "genre-map.ss")
 
-;(require "lastfm/hyped-artists.ss")
-
 (clear)
 
 ;(define host "192.168.2.2")
@@ -45,7 +43,7 @@
              [title #f]
              [genre/count '()]
              [clr (hash-ref genre-colour-hash "unclassifiable")]
-             [key (genre-key '())]
+             [key (genre-key '(("unclassifiable" . 1)))]
              [added-to-genre-map #f])
 
       (define/public (externalize)
@@ -134,11 +132,9 @@
             (genre-map-lookup key))
 
       (define/public (on-exit)
-            (displayln "on-exit")
             ; add no genres to store it in the map if the
             ; track id or the genre id has failed
             (unless (added-to-genre-map?)
-                (displayln "set-genre! to '()")
                 (set-genre/count! '(("unclassifiable" . 1)) #t)))
 
       (define (calculate-genre-colour)
@@ -371,21 +367,25 @@
            ))))
     v))
 
+#|
+(require "lastfm/hyped-artists.ss")
+
 (define (generate-hyped-tracks)
   (set! tracks
       (for/list ([gc genre-descriptor-db])
         (let ([current-track (make-object track%)]
               [framerate (inexact->exact (beat-pattern-framerate))]
-          [bpm (+ 350 (* 80 (rndf)))]
-          )
+              [bpm (+ 350 (* 80 (rndf)))])
             (send current-track set-genre/count! gc)
             (set-field! framerate current-track framerate)
             (send current-track set-beat-pattern! (generate-beat-pattern framerate 30 bpm))
+            (send current-track on-exit)
 
             current-track))))
 
-;(generate-hyped-tracks)
-;(save-tracks "data/hyped-tracks.dat")
+(generate-hyped-tracks)
+(save-tracks "data/hyped-tracks.dat")
+|#
 
 ;(load-tracks "data/hyped-tracks.dat")
 
