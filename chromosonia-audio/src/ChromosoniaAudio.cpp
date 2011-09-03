@@ -269,11 +269,14 @@ void handleAudioEvents(float *buffer, unsigned long numFrames) {
   if(insideEvent) {
     if(sonotopyInterface->getEventStateManager()->isInsideEvent()) {
       beatPattern->addFrame(sonotopyInterface->getBeatIntensity());
-      echonestInterface->feedAudio(buffer, numFrames);
+      if(echonestInterface)
+	echonestInterface->feedAudio(buffer, numFrames);
     }
     else {
-      echonestInterface->restartBufferingAfterProcessing(false);
-      echonestInterface->processCodegenBufferInNewThread();
+      if(echonestInterface) {
+	echonestInterface->restartBufferingAfterProcessing(false);
+	echonestInterface->processCodegenBufferInNewThread();
+      }
       beatPattern->removeTrailingSilenceFrames();
       beatPattern->crossFade();
       insideEvent = false;
@@ -288,9 +291,11 @@ void handleAudioEvents(float *buffer, unsigned long numFrames) {
       if(beatPattern) delete beatPattern;
       beatPattern = new BeatPattern();
       beatPattern->addFrame(sonotopyInterface->getBeatIntensity());
-      echonestInterface->restartBufferingAfterProcessing(true);
-      echonestInterface->startCodegenBuffering();
-      echonestInterface->feedAudio(buffer, numFrames);
+      if(echonestInterface) {
+	echonestInterface->restartBufferingAfterProcessing(true);
+	echonestInterface->startCodegenBuffering();
+	echonestInterface->feedAudio(buffer, numFrames);
+      }
     }
   }
 }
@@ -299,12 +304,18 @@ int jackProcess(jack_nframes_t num_frames, void *arg) {
   jack_default_audio_sample_t *buffer =
     (jack_default_audio_sample_t *) jack_port_get_buffer(jackInputPort, num_frames);
   pthread_mutex_lock(&mutex);
+
   if(sonotopyInterface->getEventStateManager()->isInsideEvent())
     sonotopyInterface->feedAudio((float *)buffer, num_frames);
-  if(!echonestInterface->isProcessingCodegenBuffer()) {
+
+  bool isProcessingCodegenBuffer = false;
+  if(echonestInterface)
+    isProcessingCodegenBuffer = echonestInterface->isProcessingCodegenBuffer();
+  if(!isProcessingCodegenBuffer) {
     sonotopyInterface->updateEventState((float *)buffer, num_frames);
     handleAudioEvents((float *)buffer, num_frames);
   }
+
   pthread_mutex_unlock(&mutex);
   return 0;
 }
@@ -379,7 +390,6 @@ Scheme_Object *init_audio(int argc, Scheme_Object **argv) {
   if(jackClient != NULL && sonotopyInterface == NULL) {
     sonotopyInterface = new SonotopyInterface(jack_get_sample_rate(jackClient),
 					      jack_get_buffer_size(jackClient));
-    echonestInterface = new EchonestInterface(jack_get_sample_rate(jackClient));
     if(!jackActivated) {
       if(jack_activate(jackClient) == 0) {
 	jackActivated = true;
@@ -397,6 +407,14 @@ Scheme_Object *init_audio(int argc, Scheme_Object **argv) {
   return scheme_void;
 }
 
+Scheme_Object *init_echonest(int argc, Scheme_Object **argv) {
+  if(jackClient != NULL) {
+    if(echonestInterface)
+      delete echonestInterface;
+    echonestInterface = new EchonestInterface(jack_get_sample_rate(jackClient));
+  }
+  return scheme_void;
+}
 
 // StartFunctionDoc-en
 // vane
@@ -1298,6 +1316,8 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
 
   scheme_add_global("init-audio",
 		    scheme_make_prim_w_arity(init_audio, "init-audio", 0, 1), menv);
+  scheme_add_global("init-echonest",
+		    scheme_make_prim_w_arity(init_echonest, "init-echonest", 0, 0), menv);
   scheme_add_global("vane",
 		    scheme_make_prim_w_arity(vane, "vane", 0, 0), menv);
   scheme_add_global("beat",
