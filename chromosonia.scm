@@ -298,28 +298,48 @@
             (lambda (in)
               (deserialize (read in))))))
 
+(define (generate-beat-pattern framerate secs bpm)
+  (define (secs-to-frame secs)
+    (inexact->exact (floor (* secs framerate))))
+
+  (let* ([num-frames (secs-to-frame secs)]
+     [v (make-vector num-frames 0)]
+     [num-beats (/ (/ (* bpm 60) framerate) secs)]
+     [offset (random num-frames)]
+     [pulse-decay-num-frames (secs-to-frame 1)]
+     )
+    (for ([i (in-range num-beats)])
+     (let ([frame0 (secs-to-frame (/ (* i framerate) num-beats))])
+       (for ([j (in-range pulse-decay-num-frames)])
+        (let ([frame1 (remainder (+ offset frame0 j) num-frames)]
+              [new-value (- 1 (/ j pulse-decay-num-frames))])
+          (vector-set! v frame1 (max new-value (vector-ref v frame1)))
+           ))))
+    v))
+
 (define (generate-hyped-tracks)
   (set! tracks
       (for/list ([gc genre-descriptor-db])
         (let ([current-track (make-object track%)]
-              [framerate (inexact->exact (beat-pattern-framerate))])
+              [framerate (inexact->exact (beat-pattern-framerate))]
+          [bpm (+ 350 (* 80 (rndf)))]
+          )
             (send current-track set-genre/count! gc)
             (set-field! framerate current-track framerate)
-            (send current-track set-beat-pattern! (build-vector (* 30 framerate)
-                                                                (lambda (x) (rndf))))
+            (send current-track set-beat-pattern! (generate-beat-pattern framerate 30 bpm))
 
             current-track))))
 
 ;(generate-hyped-tracks)
-;(save-tracks "hyped-tracks.dat")
+;(save-tracks "data/hyped-tracks.dat")
 
 (load-tracks "data/hyped-tracks.dat")
 
 (set-camera-transform (mtranslate #(0 0 -37)))
 
 (with-primitive fc-pixels
-	(pdata-map!  (lambda (c) 0) "c")
-	(pixels-upload)
+    (pdata-map!  (lambda (c) 0) "c")
+    (pixels-upload)
     (identity)
     (scale (vector fc-pixels-width (- fc-pixels-height) 1))
     (hint-cull-ccw)
