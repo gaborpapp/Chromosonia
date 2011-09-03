@@ -259,7 +259,8 @@
                [offset (+ (vx pos) (* (vy pos) fc-pixels-width))]
                [clr (send track get-colour)]
                [beat (send track get-beat)]
-               [opacity (max genre-map-background-opacity beat)])
+	       [opacity (+ genre-map-background-opacity
+			   (* beat (- 1 genre-map-background-opacity)))])
             (pdata-set! "c" offset (vmul clr (* opacity v)))))
 
     (with-primitive fc-pixels

@@ -65,12 +65,18 @@ public:
     return inputs;
   }
 
-  void classify(const SOM::Sample &input, unsigned int &x, unsigned int &y) {
+  bool classify(const SOM::Sample &input, unsigned int &x, unsigned int &y) {
     if(outdated)
       updateClassifications();
-    TwoDimArray<Node>::Iterator i = classifications[input];
-    x = i->column;
-    y = i->row;
+    map< SOM::Sample, TwoDimArray<Node>::Iterator >::iterator j = classifications.find(input);
+    if(j == classifications.end())
+      return false;
+    else {
+      TwoDimArray<Node>::Iterator i = j->second;
+      x = i->column;
+      y = i->row;
+      return true;
+    }
   }
 
   void invalidate() {
@@ -912,9 +918,17 @@ Scheme_Object *genre_map_lookup(int argc, Scheme_Object **argv) {
   if(genreMap) {
     if(key.size() == genreKeySize) {
       unsigned int ux, uy;
-      genreClassifier->classify(key, ux, uy);
-      x = ux;
-      y = uy;
+      if(genreClassifier->classify(key, ux, uy)) {
+	x = ux;
+	y = uy;
+      }
+      else {
+	cerr << "failed to lookup key: ";
+	copy(key.begin(), key.end(), ostream_iterator<float> (cerr, " "));
+	cerr << endl;
+	x = 0;
+	y = 0;
+      }
     }
     else
       cerr << "illegal genre key size: expected " << genreKeySize << " but got " << key.size() << endl;
