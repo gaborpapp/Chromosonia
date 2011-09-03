@@ -9,9 +9,12 @@
 (require "facade-control/facade-control.ss")
 (require "genre-map.ss")
 
+;(require "lastfm/hyped-artists.ss")
+
 (clear)
 
-(define host "192.168.2.2")
+;(define host "192.168.2.2")
+(define host "169.254.59.222")
 
 (define beat-transition-duration 5)
 (define social-transition-duration 5)
@@ -46,12 +49,12 @@
 
       (define/public (internalize v)
            (set! framerate (list-ref v 0))
-           (set! beat-pattern (list-ref v 1))
+           (set-beat-pattern! (list-ref v 1))
            (set! artist (list-ref v 2))
            (set! title (list-ref v 3))
            (set! key (list-ref v 4))
            (set! clr (list-ref v 5))
-           (set! genre/count (list-ref v 6)))
+           (set-genre/count! (list-ref v 6)))
 
       (define/public (get-beat)
             (cond [(not (zero? (vector-length beat-pattern)))
@@ -294,9 +297,28 @@
             (lambda (in)
               (deserialize (read in))))))
 
+(define (generate-hyped-tracks)
+  (set! tracks
+      (for/list ([gc genre-descriptor-db])
+        (let ([current-track (make-object track%)]
+              [framerate (inexact->exact (beat-pattern-framerate))])
+            (send current-track set-genre/count! gc)
+            (set-field! framerate current-track framerate)
+            (send current-track set-beat-pattern! (build-vector (* 30 framerate)
+                                                                (lambda (x) (rndf))))
+
+            current-track))))
+
+;(generate-hyped-tracks)
+;(save-tracks "hyped-tracks.dat")
+
+(load-tracks "data/hyped-tracks.dat")
+
 (set-camera-transform (mtranslate #(0 0 -37)))
 
 (with-primitive fc-pixels
+	(pdata-map!  (lambda (c) 0) "c")
+	(pixels-upload)
     (identity)
     (scale (vector fc-pixels-width (- fc-pixels-height) 1))
     (hint-cull-ccw)
