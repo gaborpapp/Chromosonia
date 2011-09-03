@@ -29,6 +29,7 @@
 (genre-map-layout (genre-key-size)
                   (vector fc-pixels-width fc-pixels-height 0)
                   fc-mask)
+(genre-map-neighbourhood-param 0.01)
 
 ; list holding all previously heard tracks
 (define tracks '())
