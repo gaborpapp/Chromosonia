@@ -19,6 +19,7 @@
 
 (define beat-transition-duration 5)
 (define social-transition-duration 5)
+(define genre-map-background-opacity .5)
 
 (texture-params 0 '(min nearest mag nearest))
 
@@ -248,8 +249,9 @@
         (let* ([pos (send track get-position)]
                [offset (+ (vx pos) (* (vy pos) fc-pixels-width))]
                [clr (send track get-colour)]
-               [beat (send track get-beat)])
-            (pdata-set! "c" offset (vmul clr (* beat v)))))
+               [beat (send track get-beat)]
+	       [opacity (max genre-map-background-opacity beat)])
+            (pdata-set! "c" offset (vmul clr (* opacity v)))))
 
     (with-primitive fc-pixels
         (for ([track tracks])
