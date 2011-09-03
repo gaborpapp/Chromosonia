@@ -36,7 +36,7 @@ namespace SchemeHelper
 	std::string PathFromScheme(Scheme_Object *ob);
 	bool IsSymbol(Scheme_Object *src,const std::string &symbol);
 	std::string SymbolName(Scheme_Object *src);
-	Scheme_Object *FloatsToScheme(float *src, unsigned int size);
+	Scheme_Object *FloatsToScheme(const float *src, unsigned int size);
 	Scheme_Object *IntsToScheme(int *src, unsigned int size);
 	std::vector<int> IntVectorFromScheme(Scheme_Object *src);
 	std::vector<float> FloatVectorFromScheme(Scheme_Object *src);

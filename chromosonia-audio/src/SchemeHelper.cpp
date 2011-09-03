@@ -103,7 +103,7 @@ void SchemeHelper::FloatsFromScheme(Scheme_Object *src, float *dst, unsigned int
 	MZ_GC_UNREG();
 }
 
-Scheme_Object *SchemeHelper::FloatsToScheme(float *src, unsigned int size)
+Scheme_Object *SchemeHelper::FloatsToScheme(const float *src, unsigned int size)
 {
 	Scheme_Object *ret=NULL;
 	Scheme_Object *tmp=NULL;

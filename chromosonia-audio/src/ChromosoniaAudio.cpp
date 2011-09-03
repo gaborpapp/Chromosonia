@@ -174,10 +174,10 @@ private:
 SOM *genreMap = NULL;
 DisjointGridTopology *genreMapTopology;
 unsigned int genreMapWidth, genreMapHeight;
-unsigned int numGenres = 0;
+unsigned int genreKeySize = 0;
 DisjointGridMapFlattenedClassifier *genreClassifier;
 
-void setGenreMapLayout(unsigned int numGenres,
+void setGenreMapLayout(unsigned int genreKeySize,
 		       unsigned int width,
 		       unsigned int height,
 		       const vector<DisjointGridTopology::Node> &nodes) {
@@ -188,10 +188,10 @@ void setGenreMapLayout(unsigned int numGenres,
   genreMapWidth = width;
   genreMapHeight = height;
   genreMapTopology = new DisjointGridTopology(width, height, nodes);
-  genreMap = new SOM(numGenres, genreMapTopology);
+  genreMap = new SOM(genreKeySize, genreMapTopology);
   genreMap->setLearningParameter(0.01);
   genreMap->setNeighbourhoodParameter(0.7);
-  genreMap->setRandomModelValues(0, 1.0 / numGenres);
+  genreMap->setRandomModelValues(0, 1.0 / genreKeySize);
   genreClassifier = new DisjointGridMapFlattenedClassifier(genreMap);
 }
 
@@ -743,7 +743,7 @@ Scheme_Object *genre_map_layout(int argc, Scheme_Object **argv) {
 
   if(argc == 3) {
     //ArgCheck("genre-map-layout", "ivv", argc, argv); // doesn't handle arg 3
-    numGenres = SchemeHelper::IntFromScheme(argv[0]);
+    genreKeySize = SchemeHelper::IntFromScheme(argv[0]);
     vector<float> sizeVector = SchemeHelper::FloatVectorFromScheme(argv[1]);
     if(sizeVector.size() == 2 || sizeVector.size() == 3) {
       Scheme_Object *schemeNodes = argv[2];
@@ -762,7 +762,7 @@ Scheme_Object *genre_map_layout(int argc, Scheme_Object **argv) {
       }
       if(sonotopyInterface != NULL) {
 	pthread_mutex_lock(&mutex);
-	setGenreMapLayout(numGenres,
+	setGenreMapLayout(genreKeySize,
 			  sizeVector[0],
 			  sizeVector[1],
 			  nodes);
@@ -788,10 +788,10 @@ Scheme_Object *genre_map_layout(int argc, Scheme_Object **argv) {
 Scheme_Object *add_to_genre_map(int argc, Scheme_Object **argv) {
   vector<float> key = SchemeHelper::FloatVectorFromScheme(argv[0]);
   if(genreMap) {
-    if(key.size() == numGenres)
+    if(key.size() == genreKeySize)
       genreClassifier->addInput(key);
     else
-      cerr << "illegal genre key size: expected " << numGenres << " but got " << key.size() << endl;
+      cerr << "illegal genre key size: expected " << genreKeySize << " but got " << key.size() << endl;
   }
   else
     cerr << "tried to add genre key but genre map not initialized" << endl;
@@ -830,12 +830,12 @@ Scheme_Object *update_genre_map_partially(int argc, Scheme_Object **argv) {
 Scheme_Object *train_genre_map_with_key(int argc, Scheme_Object **argv) {
   vector<float> key = SchemeHelper::FloatVectorFromScheme(argv[0]);
   if(genreMap) {
-    if(key.size() == numGenres) {
+    if(key.size() == genreKeySize) {
       genreMap->train(key);
       genreClassifier->invalidate();
     }
     else
-      cerr << "illegal genre key size: expected " << numGenres << " but got " << key.size() << endl;
+      cerr << "illegal genre key size: expected " << genreKeySize << " but got " << key.size() << endl;
   }
   else
     cerr << "tried to add genre key but genre map not initialized" << endl;
@@ -852,20 +852,45 @@ Scheme_Object *genre_map_lookup(int argc, Scheme_Object **argv) {
   int x=-1, y=-1;
   vector<float> key = SchemeHelper::FloatVectorFromScheme(argv[0]);
   if(genreMap) {
-    if(key.size() == numGenres) {
+    if(key.size() == genreKeySize) {
       unsigned int ux, uy;
       genreClassifier->classify(key, ux, uy);
       x = ux;
       y = uy;
     }
     else
-      cerr << "illegal genre key size: expected " << numGenres << " but got " << key.size() << endl;
+      cerr << "illegal genre key size: expected " << genreKeySize << " but got " << key.size() << endl;
   }
   else
     cerr << "tried to lookup from genre map but genre map not initialized" << endl;
 
   int xy[2] = {x, y};
   result = SchemeHelper::IntsToScheme(xy, 2);
+
+  MZ_GC_UNREG();
+  return result;
+}
+
+Scheme_Object *genre_map_node(int argc, Scheme_Object **argv) {
+  Scheme_Object *result = NULL;
+  MZ_GC_DECL_REG(2);
+  MZ_GC_VAR_IN_REG(0, result);
+  MZ_GC_VAR_IN_REG(1, argv);
+  MZ_GC_REG();
+
+  ArgCheck("genre-map-node", "ii", argc, argv);
+  int x = SchemeHelper::IntFromScheme(argv[0]);
+  int y = SchemeHelper::IntFromScheme(argv[1]);
+
+  if(genreMap) {
+    unsigned int nodeId = genreMapTopology->gridCoordinatesToId(x, y);
+    if(nodeId < genreMapTopology->getNumNodes())
+      result = SchemeHelper::FloatsToScheme(genreMap->getModel(nodeId), genreKeySize);
+    else
+      cerr << "failed to get genre map node id" << endl;
+  }
+  else
+    cerr << "tried to get node from genre map but genre map not initialized" << endl;
 
   MZ_GC_UNREG();
   return result;
@@ -1174,6 +1199,8 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
 		    scheme_make_prim_w_arity(add_to_genre_map, "add-to-genre-map", 1, 1), menv);
   scheme_add_global("genre-map-lookup",
 		    scheme_make_prim_w_arity(genre_map_lookup, "genre-map-lookup", 1, 1), menv);
+  scheme_add_global("genre-map-node",
+		    scheme_make_prim_w_arity(genre_map_node, "genre-map-node", 2, 2), menv);
   scheme_add_global("update-genre-map-globally",
 		    scheme_make_prim_w_arity(update_genre_map_globally, "update-genre-map-globally", 0, 0), menv);
   scheme_add_global("update-genre-map-partially",
