@@ -44,7 +44,8 @@
              [title #f]
              [genre/count '()]
              [clr (hash-ref genre-colour-hash "unclassifiable")]
-             [key #f])
+             [key (genre-key '())]
+             [added-to-genre-map #f])
 
       (define/public (externalize)
            (list framerate beat-pattern artist title key clr genre/count))
@@ -92,7 +93,7 @@
                            (vector->values (list->vector (process "./tests/trackid.py"))))
             (proc 'wait)
             (for ([l (in-lines stdout)])
-                 (displayln l)
+                 ;(displayln l)
                  (let ([a (regexp-match artist-regexp l)]
                        [t (regexp-match title-regexp l)])
                    (when a
@@ -109,23 +110,35 @@
       (define/public (start-track-id)
             (thread identify))
 
-      (define/public (set-genre/count! gc)
+      (define/public (set-genre/count! gc [force-add #f])
             (set! genre/count gc)
             (set! key (genre-key gc))
-            (add-to-genre-map key)
-            (update-genre-map-partially 100)
-            (calculate-genre-colour))
+            (when (or force-add
+                      (not (null? gc)))
+                (add-to-genre-map key)
+                (update-genre-map-partially 100)
+                (set! added-to-genre-map #t)
+                (calculate-genre-colour)))
 
       (define/public (identified?)
             (or artist title))
+
+      (define/public (added-to-genre-map?)
+            added-to-genre-map)
 
       (define/public (get-colour)
             clr)
 
       (define/public (get-position)
-            (if key
-                (genre-map-lookup key)
-                #(0 0 0)))
+            (genre-map-lookup key))
+
+      (define/public (on-exit)
+            (displayln "on-exit")
+            ; add no genres to store it in the map if the
+            ; track id or the genre id has failed
+            (unless (added-to-genre-map?)
+                (displayln "set-genre! to '()")
+                (set-genre/count! '(("unclassifiable" . 1)) #t)))
 
       (define (calculate-genre-colour)
             ; genre colour is the genre with maximum value
@@ -307,7 +320,10 @@
             (let ([pixels (with-primitive fc-pixels
                                 (pdata-list-ref "c"))])
               (with-primitive fc-perceptual
-                    (pdata-list-set "c" pixels)))]
+                    (pdata-list-set "c" pixels)))
+
+            ; notify the object that we are exiting
+            (send current-track on-exit)]
 
     [(beat) ; beat-pattern
             (let ([v (clamp (/ (- (time) beat-start) beat-transition-duration))])
