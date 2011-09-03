@@ -18,6 +18,8 @@
                   (vector fc-pixels-width fc-pixels-height 0)
                   fc-mask)
 
+(genre-map-neighbourhood-param 0.01)
+
 (define keys (for/list ([descriptor genre-descriptor-db])
                (genre-key descriptor)))
 

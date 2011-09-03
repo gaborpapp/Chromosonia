@@ -195,6 +195,26 @@ void setGenreMapLayout(unsigned int genreKeySize,
   genreClassifier = new DisjointGridMapFlattenedClassifier(genreMap);
 }
 
+SOM *colourMap = NULL;
+DisjointGridTopology *colourMapTopology;
+unsigned int colourMapWidth, colourMapHeight;
+
+void setColourMapLayout(unsigned int width,
+			unsigned int height,
+			const vector<DisjointGridTopology::Node> &nodes) {
+  if(colourMap) {
+    delete colourMap;
+    delete colourMapTopology;
+  }
+  colourMapWidth = width;
+  colourMapHeight = height;
+  colourMapTopology = new DisjointGridTopology(width, height, nodes);
+  colourMap = new SOM(3, colourMapTopology);
+  colourMap->setLearningParameter(0.01);
+  colourMap->setNeighbourhoodParameter(0.1);
+  colourMap->setRandomModelValues(0.0, 1.0);
+}
+
 class BeatPattern {
 public:
   BeatPattern() {
@@ -785,6 +805,26 @@ Scheme_Object *genre_map_layout(int argc, Scheme_Object **argv) {
   return result;
 }
 
+Scheme_Object *genre_map_learning_param(int argc, Scheme_Object **argv) {
+  ArgCheck("genre-map-learning-param", "f", argc, argv);
+  float value = SchemeHelper::FloatFromScheme(argv[0]);
+  if(genreMap)
+    genreMap->setLearningParameter(value);
+  else
+    cerr << "tried to update genre map but genre map not initialized" << endl;
+  return scheme_void;
+}
+
+Scheme_Object *genre_map_neighbourhood_param(int argc, Scheme_Object **argv) {
+  ArgCheck("genre-map-neighbourhood-param", "f", argc, argv);
+  float value = SchemeHelper::FloatFromScheme(argv[0]);
+  if(genreMap)
+    genreMap->setNeighbourhoodParameter(value);
+  else
+    cerr << "tried to update genre map but genre map not initialized" << endl;
+  return scheme_void;
+}
+
 Scheme_Object *add_to_genre_map(int argc, Scheme_Object **argv) {
   vector<float> key = SchemeHelper::FloatVectorFromScheme(argv[0]);
   if(genreMap) {
@@ -1132,6 +1172,113 @@ Scheme_Object *beat_pattern_framerate(int argc, Scheme_Object **argv) {
   return scheme_make_float(framerate);
 }
 
+
+Scheme_Object *colour_map_layout(int argc, Scheme_Object **argv) {
+  Scheme_Object *result = NULL;
+  MZ_GC_DECL_REG(2);
+  MZ_GC_VAR_IN_REG(0, argv);
+  MZ_GC_VAR_IN_REG(1, result);
+  MZ_GC_REG();
+  result = scheme_make_vector(3, scheme_void);
+
+  if(argc == 2) {
+    vector<float> sizeVector = SchemeHelper::FloatVectorFromScheme(argv[0]);
+    if(sizeVector.size() == 2 || sizeVector.size() == 3) {
+      Scheme_Object *schemeNodes = argv[1];
+      vector<DisjointGridTopology::Node> nodes;
+      for (int n=0; n<SCHEME_VEC_SIZE(schemeNodes); n++) {
+	Scheme_Object *nodeV = SCHEME_VEC_ELS(schemeNodes)[n];
+	int s = SCHEME_VEC_SIZE(nodeV);
+	if(s == 2) {
+	  if(SCHEME_EXACT_INTEGERP(SCHEME_VEC_ELS(nodeV)[0]) &&
+	     SCHEME_EXACT_INTEGERP(SCHEME_VEC_ELS(nodeV)[1])) {
+	    int x = IntFromScheme(SCHEME_VEC_ELS(nodeV)[0]);
+	    int y = IntFromScheme(SCHEME_VEC_ELS(nodeV)[1]);
+	    nodes.push_back(DisjointGridTopology::Node(x, y));
+	  }
+	}
+      }
+      if(sonotopyInterface != NULL) {
+	pthread_mutex_lock(&mutex);
+	setColourMapLayout(sizeVector[0],
+			   sizeVector[1],
+			   nodes);
+	pthread_mutex_unlock(&mutex);
+      }
+    }
+  }
+
+  float width = 0, height = 0;
+  if(sonotopyInterface != NULL) {
+    width = colourMapWidth;
+    height = colourMapHeight;
+  }
+
+  SCHEME_VEC_ELS(result)[0] = scheme_make_integer_value(width);
+  SCHEME_VEC_ELS(result)[1] = scheme_make_integer_value(height);
+  SCHEME_VEC_ELS(result)[2] = scheme_make_integer_value(0);
+
+  MZ_GC_UNREG();
+  return result;
+}
+
+Scheme_Object *colour_from_map(int argc, Scheme_Object **argv) {
+  Scheme_Object *result = NULL;
+  MZ_GC_DECL_REG(2);
+  MZ_GC_VAR_IN_REG(0, result);
+  MZ_GC_VAR_IN_REG(1, argv);
+  MZ_GC_REG();
+
+  ArgCheck("colour-from-map", "ii", argc, argv);
+  int x = SchemeHelper::IntFromScheme(argv[0]);
+  int y = SchemeHelper::IntFromScheme(argv[1]);
+
+  if(colourMap) {
+    unsigned int nodeId = colourMapTopology->gridCoordinatesToId(x, y);
+    if(nodeId < colourMapTopology->getNumNodes())
+      result = SchemeHelper::FloatsToScheme(colourMap->getModel(nodeId), 3);
+    else
+      cerr << "failed to get colour map node id" << endl;
+  }
+  else
+    cerr << "tried to get node from colour map but colour map not initialized" << endl;
+
+  MZ_GC_UNREG();
+  return result;
+}
+
+Scheme_Object *train_colour_map(int argc, Scheme_Object **argv) {
+  vector<float> input = SchemeHelper::FloatVectorFromScheme(argv[0]);
+
+  if(colourMap) {
+    colourMap->train(input);
+  }
+  else
+    cerr << "tried to update colour map but colour map not initialized" << endl;
+  return scheme_void;
+}
+
+Scheme_Object *colour_map_learning_param(int argc, Scheme_Object **argv) {
+  ArgCheck("colour-map-learning-param", "f", argc, argv);
+  float value = SchemeHelper::FloatFromScheme(argv[0]);
+  if(colourMap)
+    colourMap->setLearningParameter(value);
+  else
+    cerr << "tried to update colour map but colour map not initialized" << endl;
+  return scheme_void;
+}
+
+Scheme_Object *colour_map_neighbourhood_param(int argc, Scheme_Object **argv) {
+  ArgCheck("colour-map-neighbourhood-param", "f", argc, argv);
+  float value = SchemeHelper::FloatFromScheme(argv[0]);
+  if(colourMap)
+    colourMap->setNeighbourhoodParameter(value);
+  else
+    cerr << "tried to update colour map but colour map not initialized" << endl;
+  return scheme_void;
+}
+
+
 /////////////////////
 
 #ifdef STATIC_LINK
@@ -1195,6 +1342,10 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
 		    scheme_make_prim_w_arity(trailing_silence, "trailing-silence", 0, 1), menv);
   scheme_add_global("genre-map-layout",
 		    scheme_make_prim_w_arity(genre_map_layout, "genre-map-layout", 3, 3), menv);
+  scheme_add_global("genre-map-learning-param",
+		    scheme_make_prim_w_arity(genre_map_learning_param, "genre-map-learning-param", 1, 1), menv);
+  scheme_add_global("genre-map-neighbourhood-param",
+		    scheme_make_prim_w_arity(genre_map_neighbourhood_param, "genre-map-neighbourhood-param", 1, 1), menv);
   scheme_add_global("add-to-genre-map",
 		    scheme_make_prim_w_arity(add_to_genre_map, "add-to-genre-map", 1, 1), menv);
   scheme_add_global("genre-map-lookup",
@@ -1215,6 +1366,16 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
 		    scheme_make_prim_w_arity(beat_pattern, "beat-pattern", 0, 0), menv);
   scheme_add_global("beat-pattern-framerate",
 		    scheme_make_prim_w_arity(beat_pattern_framerate, "beat-pattern-framerate", 0, 0), menv);
+  scheme_add_global("colour-map-layout",
+		    scheme_make_prim_w_arity(colour_map_layout, "colour-map-layout", 2, 2), menv);
+  scheme_add_global("colour-map-learning-param",
+		    scheme_make_prim_w_arity(colour_map_learning_param, "colour-map-learning-param", 1, 1), menv);
+  scheme_add_global("colour-map-neighbourhood-param",
+		    scheme_make_prim_w_arity(colour_map_neighbourhood_param, "colour-map-neighbourhood-param", 1, 1), menv);
+  scheme_add_global("colour-from-map",
+		    scheme_make_prim_w_arity(colour_from_map, "colour-from-map", 2, 2), menv);
+  scheme_add_global("train-colour-map",
+		    scheme_make_prim_w_arity(train_colour_map, "train-colour-map", 1, 1), menv);
 
   scheme_finish_primitive_module(menv);
   MZ_GC_UNREG();
