@@ -13,7 +13,7 @@
 
 (define host "192.168.2.2")
 
-(define beat-duration 5)
+(define beat-transition-duration 5)
 (define social-transition-duration 5)
 
 (texture-params 0 '(min nearest mag nearest))
@@ -79,7 +79,7 @@
             (set! genre/count gc)
             (set! key (genre-key gc))
             (add-to-genre-map key)
-			(update-genre-map-partially 100)
+            (update-genre-map-partially 100)
             (calculate-genre-colour))
 
       (define/public (identified?)
@@ -120,7 +120,7 @@
 (define get-state
   (let ([last-inside 0]
         [last-state 'idle]
-        [beat-start (- beat-duration)])
+        [beat-start (- beat-transition-duration)])
     (lambda ()
       (let* ([inside (inside-event)]
              [state (cond [(= inside 1)
@@ -133,7 +133,7 @@
                                   [(eq? last-state 'exit)
                                         (set! beat-start (time))
                                         'beat]
-                                  [(< (time) (+ beat-start beat-duration))
+                                  [(< (time) (+ beat-start beat-transition-duration))
                                         'beat]
                                   [else
                                         'idle])])])
@@ -153,8 +153,8 @@
         (with-primitive fc-pixels
             (pdata-index-map!
                 (λ (i c)
-					(vmul clr
-						  (expt (vector-ref pattern i) 10.0)))
+                    (vmul clr
+                          (expt (vector-ref pattern i) 10.0)))
                 "c")
             (pixels-upload))))
 
@@ -198,7 +198,7 @@
                           [offs (+ x (* y fc-pixels-width))])
                       (pdata-set! "c" offs
                             (vlerp (vmul (list-ref ppixels offs) (- 1 v))
-                                  (vmul beat-clr v)
+                                  (vmul clr v)
                                   (* v (sin (* (clamp (/ dist max-dist) 1 2)
                                           (* pi .5)))))))))
 
@@ -207,21 +207,30 @@
             (pixels-upload))))
 
 ;; (social-vis)
-;;
+;;     v : number (0 - 1) for transition from beat-pattern to social
 
-(define (social-vis)
+(define (social-vis v)
+      (define (draw-track-beat track [v 1])
+        (let* ([pos (send track get-position)]
+               [offset (+ (vx pos) (* (vy pos) fc-pixels-width))]
+               [clr (send track get-colour)]
+               [beat (send track get-beat)])
+            (pdata-set! "c" offset (vmul clr (* beat v)))))
+
     (with-primitive fc-pixels
         (for ([track tracks])
-            (let* ([pos (send track get-position)]
-                   [offset (+ (vx pos) (* (vy pos) fc-pixels-width))]
-                   [clr (send track get-colour)]
-                   [beat (send track get-beat)])
-                (pdata-set! "c" offset (vmul clr beat))))
+            (draw-track-beat track v))
+
+        ; draw the last track without fading
+        (unless (null? tracks)
+            (draw-track-beat (car tracks)))
+
         (pixels-upload)))
 
 
 (define last-state 'nothing)
 (define beat-start 0)
+(define social-start 0)
 
 (define (mainloop)
   (define state (get-state))
@@ -261,13 +270,14 @@
               (with-primitive fc-perceptual
                     (pdata-list-set "c" pixels)))]
 
-    [(beat)
-            (let ([v (clamp (/ (- (time) beat-start) beat-duration))])
-                (beat-pattern-vis current-track v))]
+    [(beat) ; beat-pattern
+            (let ([v (clamp (/ (- (time) beat-start) beat-transition-duration))])
+                (beat-pattern-vis current-track v))
+            (set! social-start (time))]
 
-    [(idle)
-            (social-vis)
-            (set! current-track #f)])
+    [(idle) ; social visualization
+            (let ([v (clamp (/ (- (time) social-start) social-transition-duration))])
+                (social-vis v))])
 
     ; update facade controller
     (fc-update)

@@ -27,3 +27,12 @@ pyechonest (http://code.google.com/p/pyechonest/)
 	python setup.py build
 	sudo python setup.py install
 
+android track id:
+	install android sdk
+	install tesseract, imagemagick
+	(OS X: sudo port install tesseract ImageMagick)
+	put android-sdk/tools on path
+	disable locking on phone
+	disable landscape orientation on phone
+	disable incoming calls
+
