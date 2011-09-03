@@ -179,7 +179,9 @@
                     (pixels-download))
                   (for ([i (in-range 1085)])
                        (vector-set! fc-colours i
-                                    (pdata-ref "c" (vector-ref fc-mapping i)))))
+									; add a small value to look nice in the simulator
+									(vclamp (vadd #(0.01 0.01 0.01)
+												  (pdata-ref "c" (vector-ref fc-mapping i)))))))
   (fc-send fc-colours))
 
 
