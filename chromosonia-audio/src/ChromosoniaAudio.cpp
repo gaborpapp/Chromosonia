@@ -191,7 +191,7 @@ void setGenreMapLayout(unsigned int numGenres,
   genreMap = new SOM(numGenres, genreMapTopology);
   genreMap->setLearningParameter(0.01);
   genreMap->setNeighbourhoodParameter(0.7);
-  genreMap->setRandomModelValues(0, numGenres);
+  genreMap->setRandomModelValues(0, 1.0 / numGenres);
   genreClassifier = new DisjointGridMapFlattenedClassifier(genreMap);
 }
 

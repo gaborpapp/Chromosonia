@@ -586,7 +586,8 @@
 (define (get-hyped-artists)
 	(define lastfm-port (get-pure-port
 				(string->url (string-append "http://ws.audioscrobbler.com/2.0/?method=chart.gettopartists"
-											"&api_key=" api-key))))
+							    "&limit=300"
+							    "&api_key=" api-key))))
 
 	(define tag-name-regexp ; <name>tag</name>
 		#rx"<name>(.+)</name>")

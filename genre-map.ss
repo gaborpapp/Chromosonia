@@ -26,10 +26,13 @@
                 [val (cdr gc)])
             (vector-set! key (list-index genre genres) val)))
 
+    ;;(vector-set! key (length genres) (* (random) 10))
+
     key)
 
 
 (define (genre-key-size) (length genres))
+;;(define (genre-key-size) (+ (length genres) 1))
 
 ; genre->colour mapping in hsv
 (define genre-colour-hsv
