@@ -79,7 +79,7 @@
             (set! genre/count gc)
             (set! key (genre-key gc))
             (add-to-genre-map key)
-			(update-genre-map-partially 100)
+            (update-genre-map-partially 100)
             (calculate-genre-colour))
 
       (define/public (identified?)
@@ -153,8 +153,8 @@
         (with-primitive fc-pixels
             (pdata-index-map!
                 (λ (i c)
-					(vmul clr
-						  (expt (vector-ref pattern i) 10.0)))
+                    (vmul clr
+                          (expt (vector-ref pattern i) 10.0)))
                 "c")
             (pixels-upload))))
 
@@ -198,7 +198,7 @@
                           [offs (+ x (* y fc-pixels-width))])
                       (pdata-set! "c" offs
                             (vlerp (vmul (list-ref ppixels offs) (- 1 v))
-                                  (vmul beat-clr v)
+                                  (vmul clr v)
                                   (* v (sin (* (clamp (/ dist max-dist) 1 2)
                                           (* pi .5)))))))))
 
