@@ -41,7 +41,7 @@
              [beat-pattern #()]
              [artist #f]
              [title #f]
-             [genre/count '()]
+             [genre/count '(("unclassibiable" . 1))]
              [clr (hash-ref genre-colour-hash "unclassifiable")]
              [key (genre-key '(("unclassifiable" . 1)))]
              [added-to-genre-map #f])
@@ -99,6 +99,10 @@
                      (set-artist! (cadr a)))
                    (when t
                      (set-title! (cadr t)))))
+			; if cannot identify set it to unclassifiable
+			; TODO: try identifying again
+			(unless (or artist title)
+			  (set-genre/count! '(("unclassifiable" . 1))))
 
             (close-input-port stdout)
             (close-input-port stderr)
@@ -113,7 +117,7 @@
             (set! genre/count gc)
             (set! key (genre-key gc))
             (when (or force-add
-                      (not (null? gc)))
+                      (not (added-to-genre-map?)))
                 (add-to-genre-map key)
                 (update-genre-map-partially 100)
                 (set! added-to-genre-map #t)
@@ -132,10 +136,10 @@
             (genre-map-lookup key))
 
       (define/public (on-exit)
-            ; add no genres to store it in the map if the
-            ; track id or the genre id has failed
+            ; add "unclassifiable" genre to the map if it
+            ; failed so far
             (unless (added-to-genre-map?)
-                (set-genre/count! '(("unclassifiable" . 1)) #t)))
+                (set-genre/count! '(("unclassifiable" . 1)))))
 
       (define (calculate-genre-colour)
             ; genre colour is the genre with maximum value
@@ -254,13 +258,13 @@
 ;;     v : number (0 - 1) for transition from beat-pattern to social
 
 (define (social-vis v)
-      (define (draw-track-beat track [v 1])
+    (define (draw-track-beat track [v 1])
         (let* ([pos (send track get-position)]
                [offset (+ (vx pos) (* (vy pos) fc-pixels-width))]
                [clr (send track get-colour)]
                [beat (send track get-beat)]
-	       [opacity (+ genre-map-background-opacity
-			   (* beat (- 1 genre-map-background-opacity)))])
+               [opacity (+ genre-map-background-opacity
+                           (* beat (- 1 genre-map-background-opacity)))])
             (pdata-set! "c" offset (vmul clr (* opacity v)))))
 
     (with-primitive fc-pixels
@@ -387,7 +391,7 @@
 (save-tracks "data/hyped-tracks.dat")
 |#
 
-;(load-tracks "data/hyped-tracks.dat")
+(load-tracks "data/hyped-tracks.dat")
 
 (set-camera-transform (mtranslate #(0 0 -37)))
 
