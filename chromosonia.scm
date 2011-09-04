@@ -13,7 +13,8 @@
 (clear)
 
 ;(define host "192.168.2.2")
-(define host "169.254.59.222")
+;(define host "169.254.59.222")
+(define host "192.168.2.4")
 
 (define beat-transition-duration 5)
 (define social-transition-duration 5)
@@ -30,6 +31,11 @@
                   (vector fc-pixels-width fc-pixels-height 0)
                   fc-mask)
 (genre-map-neighbourhood-param 0.01)
+
+(add-to-genre-map (genre-key
+           '(("unclassifiable" . 1))))
+
+(decibel-threshold .5)
 
 ; list holding all previously heard tracks
 (define tracks '())
@@ -99,10 +105,11 @@
                      (set-artist! (cadr a)))
                    (when t
                      (set-title! (cadr t)))))
-			; if cannot identify set it to unclassifiable
-			; TODO: try identifying again
-			(unless (or artist title)
-			  (set-genre/count! '(("unclassifiable" . 1))))
+
+        ; if cannot identify set it to unclassifiable
+        ; TODO: try identifying again
+        (unless (or artist title)
+           (set-genre/count! '(("unclassifiable" . 1))))
 
             (close-input-port stdout)
             (close-input-port stderr)
@@ -113,15 +120,17 @@
       (define/public (start-track-id)
             (thread identify))
 
-      (define/public (set-genre/count! gc [force-add #f])
+      (define/public (set-genre/count! gc)
             (set! genre/count gc)
-            (set! key (genre-key gc))
-            (when (or force-add
-                      (not (added-to-genre-map?)))
-                (add-to-genre-map key)
-                (update-genre-map-partially 100)
-                (set! added-to-genre-map #t)
-                (calculate-genre-colour)))
+            (let ([new-key (genre-key gc)])
+            (when (or (not (added-to-genre-map?))
+                  (not (equal? key new-key)))
+            (set! added-to-genre-map #t)
+            (set! key new-key)
+            (printf "adding key ~a for artist ~a~n" key artist)
+            (add-to-genre-map key)
+            (update-genre-map-partially 100)
+            (calculate-genre-colour))))
 
       (define/public (identified?)
             (or artist title))
@@ -138,8 +147,10 @@
       (define/public (on-exit)
             ; add "unclassifiable" genre to the map if it
             ; failed so far
-            (unless (added-to-genre-map?)
-                (set-genre/count! '(("unclassifiable" . 1)))))
+    ; NOTE: this needs to be synced with set-genre/count e.g. with a semaphore
+            ;(unless (added-to-genre-map?)
+            ;    (set-genre/count! '(("unclassifiable" . 1)))))
+	0)
 
       (define (calculate-genre-colour)
             ; genre colour is the genre with maximum value

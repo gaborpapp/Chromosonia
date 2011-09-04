@@ -1,6 +1,6 @@
 #!/bin/bash
 # /usr/local/bin/./jackdmp -R -d coreaudio -r 44100 -p 1024 -o 2 -i 2 -d ~:Aggregate:0
-killall jackdmp
+killall jackd
 killall fluxus
 jackd -d coreaudio -p 1024 &
 fluxus -fs -x chromosonia.scm &
