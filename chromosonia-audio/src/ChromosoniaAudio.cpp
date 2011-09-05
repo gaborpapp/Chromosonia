@@ -1152,6 +1152,23 @@ Scheme_Object *decibel_threshold(int argc, Scheme_Object **argv) {
   return scheme_make_float(threshold);
 }
 
+Scheme_Object *min_event_duration(int argc, Scheme_Object **argv) {
+  DECL_ARGV();
+
+  if(argc == 1) {
+    ArgCheck("min-event-duration", "f", argc, argv);
+    if(sonotopyInterface != NULL)
+      sonotopyInterface->getEventStateManager()->setMinEventDurationMs(FloatFromScheme(argv[0]));
+  }
+
+  float minEventDuration = 0.0f;
+  if(sonotopyInterface != NULL)
+    minEventDuration = sonotopyInterface->getEventStateManager()->getMinEventDurationMs();
+
+  MZ_GC_UNREG();
+  return scheme_make_float(minEventDuration);
+}
+
 Scheme_Object *trailing_silence(int argc, Scheme_Object **argv) {
   DECL_ARGV();
 
@@ -1372,6 +1389,8 @@ Scheme_Object *scheme_reload(Scheme_Env *env)
 		    scheme_make_prim_w_arity(decibel, "decibel", 0, 0), menv);
   scheme_add_global("decibel-threshold",
 		    scheme_make_prim_w_arity(decibel_threshold, "decibel-threshold", 0, 1), menv);
+  scheme_add_global("min-event-duration",
+		    scheme_make_prim_w_arity(min_event_duration, "min-event-duration", 0, 1), menv);
   scheme_add_global("trailing-silence",
 		    scheme_make_prim_w_arity(trailing_silence, "trailing-silence", 0, 1), menv);
   scheme_add_global("genre-map-layout",

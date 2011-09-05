@@ -9,6 +9,7 @@
 (clear)
 
 (init-audio)
+(min-event-duration 1500)
 
 (set-camera-transform (mtranslate #(0 0 -10)))
 (ortho)

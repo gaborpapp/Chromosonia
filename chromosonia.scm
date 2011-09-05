@@ -47,6 +47,7 @@
            '(("unclassifiable" . 1))))
 
 (decibel-threshold .5)
+(min-event-duration 1500)
 
 ; list holding all previously heard tracks
 (define tracks '())
