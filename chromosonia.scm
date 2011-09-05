@@ -202,6 +202,33 @@
 
       (super-new))
 
+; --- saving/loading serialized track database
+
+;; timestamp
+(define (timestamp)
+  (define num2str
+    (lambda (x)
+          (let ([s (number->string x)])
+          (if (= (string-length s) 1)
+            (string-append "0" s)
+            s))))
+  (let* ([d (seconds->date (current-seconds))]
+         [l (map num2str
+                 (list (date-year d) (date-month d) (date-day d)
+                  (date-hour d) (date-minute d) (date-second d)))])
+    (apply string-append l)))
+
+(define (save-tracks filename)
+    (call-with-output-file filename #:exists 'replace
+        (lambda (out)
+          (write (serialize tracks) out))))
+
+(define (load-tracks filename)
+      (set! tracks
+        (call-with-input-file filename
+            (lambda (in)
+              (deserialize (read in))))))
+
 ;; (get-state)
 ;; -> symbol, one of '(enter, process, exit, idle, beat)
 (define get-state
@@ -424,6 +451,10 @@
 (define beat-start 0)
 (define social-start 0)
 
+(load-tracks "data/hyped-tracks.dat")
+(define last-saved-track-count (length tracks))
+(define save-track-count-diff 5)
+
 (define (mainloop)
   (define state (get-state))
 
@@ -468,7 +499,12 @@
                     (pdata-list-set "c" pixels)))
 
             ; notify the object that we are exiting
-            (send current-track on-exit)]
+            (send current-track on-exit)
+
+			; save track database
+			(when (>= (length tracks) (+ last-saved-track-count save-track-count-diff))
+			  (save-tracks (string-append "data/tracks-" (timestamp) ".dat"))
+			  (set! last-saved-track-count (length tracks)))]
 
     [(beat) ; beat-pattern
             (let ([v (clamp (/ (- (time) beat-start) beat-transition-duration))])
@@ -484,31 +520,6 @@
     ; update facade controller
     (fc-update)
 )
-
-;; timestamp
-(define (timestamp)
-  (define num2str
-    (lambda (x)
-          (let ([s (number->string x)])
-          (if (= (string-length s) 1)
-            (string-append "0" s)
-            s))))
-  (let* ([d (seconds->date (current-seconds))]
-         [l (map num2str
-                 (list (date-year d) (date-month d) (date-day d)
-                  (date-hour d) (date-minute d) (date-second d)))])
-    (apply string-append l)))
-
-(define (save-tracks filename)
-    (call-with-output-file filename #:exists 'replace
-        (lambda (out)
-          (write (serialize tracks) out))))
-
-(define (load-tracks filename)
-      (set! tracks
-        (call-with-input-file filename
-            (lambda (in)
-              (deserialize (read in))))))
 
 (define (generate-beat-pattern framerate secs bpm)
   (define (secs-to-frame secs)
@@ -548,8 +559,6 @@
 (generate-hyped-tracks)
 (save-tracks "data/hyped-tracks.dat")
 |#
-
-(load-tracks "data/hyped-tracks.dat")
 
 (set-camera-transform (mtranslate #(0 0 -10)))
 
