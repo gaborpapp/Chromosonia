@@ -537,6 +537,8 @@
 			    [genrecnt (cdr gc)]
 				[oldgenrecnt (hash-ref genre-hash genre 0)])
 		   (hash-set! genre-hash genre (+ genrecnt oldgenrecnt))))))
+  (when (zero? (hash-count genre-hash))
+	(hash-set! genre-hash "unclassifiable" 1))
   (hash->list genre-hash))
 
 ;; (get-topgenres/count-normalized artist [count 5]) -> list of (string . count)
