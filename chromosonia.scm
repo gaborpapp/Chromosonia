@@ -321,7 +321,7 @@
 (define text-idle-0 "Plug your device")
 (define text-idle-1 "and play some music")
 (define text-process-analyzing "Analyzing...")
-(define text-process-id-0 "Track identified:")
+(define text-process-id-0 "Track:")
 (define text-process-id-1 "Genre:")
 (define text-process-id-2 "After unplugging your device, your music")
 (define text-process-id-3 "becomes one pixel on the building.")
@@ -342,24 +342,29 @@
                 (hide h)))
         ol))
 
-(define text-objs-idle (list
+(define text-objs-idle '())
+(define text-objs-process-analyzing '())
+(define text-objs-process-identified '())
+
+(define (build-layout)
+    (set! text-objs-idle (list
             (build-layout-text text-idle-0 #(-2 0 0))
             (build-layout-text text-idle-1 #(-2.4 -1 0))))
 
-(define text-objs-process-analyzing (list
-            (build-layout-text text-process-analyzing #(-1.5 -.5 0))
-            arrow-analyzing))
+    (set! text-objs-process-analyzing (list
+                (build-layout-text text-process-analyzing #(-1.5 -.5 0))
+                arrow-analyzing))
 
-(define text-objs-process-identified (list
-            (build-layout-text text-process-id-0 #(-4 1 0))
-            (build-layout-text text-process-id-1 #(-4 -1 0))
-            (build-layout-text text-process-id-2 #(-4 -3 0) #:scale .07)
-            (build-layout-text text-process-id-3 #(-4 -3.7 0) #:scale .07)
-            arrow-id))
+    (set! text-objs-process-identified (list
+                (build-layout-text text-process-id-0 #(-4 1 0))
+                (build-layout-text text-process-id-1 #(-4 -1 0))
+                (build-layout-text text-process-id-2 #(-4 -3 0) #:scale .07)
+                (build-layout-text text-process-id-3 #(-4 -3.7 0) #:scale .07)
+                arrow-id))
 
-(hide-objs
-  (append text-objs-idle text-objs-process-analyzing text-objs-process-identified)
-  1)
+    (hide-objs
+      (append text-objs-idle text-objs-process-analyzing text-objs-process-identified)
+      1))
 
 (define last-artist-obj 0)
 (define last-title-obj 0)
@@ -391,6 +396,8 @@
              (set! last-artist-obj 0)
              (set! last-title-obj 0)])
     )
+
+(build-layout)
 
 ;; ---
 
@@ -533,6 +540,8 @@
     (identity)
     (translate #(4 2.4 0))
     (scale (vmul (vector fc-pixels-width (- fc-pixels-height) 1) .1))
+	(hint-ignore-depth)
+	(hint-nozwrite)
     (hint-cull-ccw)
     (hint-wire))
 
