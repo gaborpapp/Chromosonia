@@ -20,7 +20,17 @@
 (define social-transition-duration 5)
 (define genre-map-background-opacity .5)
 
-(texture-params 0 '(min nearest mag nearest))
+(texture-params 0 '(min nearest mag nearest wrap-s clamp wrap-t clamp))
+
+(define backtxt (load-texture "ui/uid.png"))
+
+(define background (build-plane))
+(with-primitive background
+        (identity)
+        (scale #(20 15 1))
+        (hint-unlit)
+        (hint-nozwrite)
+        (texture backtxt))
 
 (fc-init host)
 
@@ -106,10 +116,12 @@
                    (when t
                      (set-title! (cadr t)))))
 
-        ; if cannot identify set it to unclassifiable
-        ; TODO: try identifying again
-        (unless (or artist title)
-           (set-genre/count! '(("unclassifiable" . 1))))
+            ; if cannot identify set it to unclassifiable
+            ; TODO: try identifying again
+            (unless (or artist title)
+                (set! artist "unidentified")
+                (set! title "unidentified")
+                (set-genre/count! '(("unclassifiable" . 1))))
 
             (close-input-port stdout)
             (close-input-port stderr)
@@ -127,7 +139,7 @@
                   (not (equal? key new-key)))
             (set! added-to-genre-map #t)
             (set! key new-key)
-            (printf "adding key ~a for artist ~a~n" key artist)
+            ;(printf "adding key ~a for artist ~a~n" key artist)
             (add-to-genre-map key)
             (update-genre-map-partially 100)
             (calculate-genre-colour))))
@@ -288,6 +300,99 @@
 
         (pixels-upload)))
 
+;; -- user interface --
+
+(define arrow-txt (load-texture "ui/arrow.png"))
+(define arrow-id (build-plane))
+(with-primitive arrow-id
+    (texture arrow-txt)
+    (translate #(-4.4 1.15 0))
+    (scale (vector (/ (texture-width arrow-txt) 64)
+                   (/ (texture-height arrow-txt) 64)
+                    1)))
+(define arrow-analyzing (build-plane))
+(with-primitive arrow-analyzing
+    (texture arrow-txt)
+    (translate #(-1.9 -0.35 0))
+    (scale (vector (/ (texture-width arrow-txt) 64)
+                   (/ (texture-height arrow-txt) 64)
+                    1)))
+
+(define text-idle-0 "Plug your device")
+(define text-idle-1 "and play some music")
+(define text-process-analyzing "Analyzing...")
+(define text-process-id-0 "Track identified:")
+(define text-process-id-1 "Genre:")
+(define text-process-id-2 "After unplugging your device, your music")
+(define text-process-id-3 "becomes one pixel on the building.")
+
+(define (build-layout-text line [pos #(0 0 0)] #:scale [sc .1] #:colour [clr 1])
+    (let ([t (build-type fluxus-scratchpad-font line)])
+        (with-primitive t
+            (translate pos)
+            (scale sc)
+            (colour clr)
+            (hint-unlit))
+        t))
+
+(define (hide-objs ol h)
+    (for-each
+        (λ (o)
+            (with-primitive o
+                (hide h)))
+        ol))
+
+(define text-objs-idle (list
+            (build-layout-text text-idle-0 #(-2 0 0))
+            (build-layout-text text-idle-1 #(-2.4 -1 0))))
+
+(define text-objs-process-analyzing (list
+            (build-layout-text text-process-analyzing #(-1.5 -.5 0))
+            arrow-analyzing))
+
+(define text-objs-process-identified (list
+            (build-layout-text text-process-id-0 #(-4 1 0))
+            (build-layout-text text-process-id-1 #(-4 -1 0))
+            (build-layout-text text-process-id-2 #(-4 -3 0) #:scale .07)
+            (build-layout-text text-process-id-3 #(-4 -3.7 0) #:scale .07)
+            arrow-id))
+
+(hide-objs
+  (append text-objs-idle text-objs-process-analyzing text-objs-process-identified)
+  1)
+
+(define last-artist-obj 0)
+(define last-title-obj 0)
+
+(define (render-ui state)
+    (hide-objs
+      (append text-objs-idle text-objs-process-analyzing text-objs-process-identified)
+      1)
+
+    (case state
+        [(beat idle)
+             (hide-objs text-objs-idle 0)]
+        [(enter process)
+              (cond [(send current-track identified?)
+                        (when (zero? last-artist-obj)
+                              (set! last-artist-obj (build-layout-text (get-field artist current-track)
+                                                                     #(-4 0 0) #:colour #(1 0 0)))
+                              (set! last-title-obj (build-layout-text (get-field title current-track)
+                                                                     #(-4 -2 0) #:colour #(1 0 0))))
+                        (hide-objs text-objs-process-identified 0)]
+                   [else
+                        (with-primitive arrow-analyzing
+                            (opacity (+ .7 (* .3 (sin (time))))))
+                        (hide-objs text-objs-process-analyzing 0)])]
+        [(exit)
+             (hide-objs text-objs-idle 0)
+             (destroy last-artist-obj)
+             (destroy last-title-obj)
+             (set! last-artist-obj 0)
+             (set! last-title-obj 0)])
+    )
+
+;; ---
 
 (define last-state 'nothing)
 (define beat-start 0)
@@ -348,9 +453,25 @@
             (let ([v (clamp (/ (- (time) social-start) social-transition-duration))])
                 (social-vis v))])
 
+    (render-ui state)
+
     ; update facade controller
     (fc-update)
 )
+
+;; timestamp
+(define (timestamp)
+  (define num2str
+    (lambda (x)
+          (let ([s (number->string x)])
+          (if (= (string-length s) 1)
+            (string-append "0" s)
+            s))))
+  (let* ([d (seconds->date (current-seconds))]
+         [l (map num2str
+                 (list (date-year d) (date-month d) (date-day d)
+                  (date-hour d) (date-minute d) (date-second d)))])
+    (apply string-append l)))
 
 (define (save-tracks filename)
     (call-with-output-file filename #:exists 'replace
@@ -404,13 +525,14 @@
 
 (load-tracks "data/hyped-tracks.dat")
 
-(set-camera-transform (mtranslate #(0 0 -37)))
+;(set-camera-transform (mtranslate #(0 0 -37)))
 
 (with-primitive fc-pixels
     (pdata-map!  (lambda (c) 0) "c")
     (pixels-upload)
     (identity)
-    (scale (vector fc-pixels-width (- fc-pixels-height) 1))
+    (translate #(4 2.4 0))
+    (scale (vmul (vector fc-pixels-width (- fc-pixels-height) 1) .1))
     (hint-cull-ccw)
     (hint-wire))
 
