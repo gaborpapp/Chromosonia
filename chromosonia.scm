@@ -64,7 +64,7 @@
              [clr (hash-ref genre-colour-hash "unclassifiable")]
              [key (genre-key '(("unclassifiable" . 1)))]
              [added-to-genre-map #f]
-			 [main-genre-found #f])
+             [main-genre-found #f])
 
       (define/public (externalize)
            (list framerate beat-pattern artist title key clr genre/count))
@@ -178,7 +178,7 @@
                                            m))
                                    (cons "unclassifiable" 0)
                                    genre/count)))
-			(set! main-genre-found #t)) 
+            (set! main-genre-found #t))
 
       (define (calculate-genre-colour)
             ; genre colour is the genre with maximum value
@@ -329,14 +329,15 @@
 (define arrow-analyzing (build-plane))
 (with-primitive arrow-analyzing
     (texture arrow-txt)
-    (translate #(-1.9 -0.35 0))
+    (translate #(-3.4 0.15 0))
     (scale (vector (/ (texture-width arrow-txt) 64)
                    (/ (texture-height arrow-txt) 64)
                     1)))
 
 (define text-idle-0 "Plug in your device")
 (define text-idle-1 "and play some music")
-(define text-process-analyzing "Analyzing...")
+(define text-process-analyzing-0 "Analyzing...")
+(define text-process-analyzing-1 "Please enjoy & wait")
 (define text-process-id-0 "Track:")
 (define text-process-id-1 "Genre:")
 (define text-process-id-2 "Stop music to add it")
@@ -367,7 +368,8 @@
             (build-layout-text text-idle-1 #(-2.4 -1 0))))
 
     (set! text-objs-process-analyzing (list
-                (build-layout-text text-process-analyzing #(-1.5 -.5 0))
+                (build-layout-text text-process-analyzing-0 #(-3 0 0))
+                (build-layout-text text-process-analyzing-1 #(-3 -1 0))
                 arrow-analyzing))
 
     (set! text-objs-process-identified (list
@@ -396,12 +398,12 @@
                         (when (zero? last-artist-obj)
                               (set! last-artist-obj (build-layout-text (string-append (get-field artist current-track) " / " (get-field title current-track))
                                                                      #(-4 0 0) #:scale .07)))
-						(when (and (get-field main-genre-found current-track)
-								   (zero? last-genre-obj))
+                        (when (and (get-field main-genre-found current-track)
+                                   (zero? last-genre-obj))
                               (set! last-genre-obj (build-layout-text (get-field main-genre current-track)
                                                                      #(-4 -2 0)
-																	 #:colour (send current-track get-colour)
-																	 #:scale .07)))
+                                                                     #:colour (send current-track get-colour)
+                                                                     #:scale .07)))
                         (hide-objs text-objs-process-identified 0)]
                    [else
                         (with-primitive arrow-analyzing
