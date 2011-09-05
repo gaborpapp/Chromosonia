@@ -58,6 +58,7 @@
              [artist #f]
              [title #f]
              [genre/count '(("unclassibiable" . 1))]
+             [main-genre "unclassifiable"]
              [clr (hash-ref genre-colour-hash "unclassifiable")]
              [key (genre-key '(("unclassifiable" . 1)))]
              [added-to-genre-map #f])
@@ -142,6 +143,7 @@
             ;(printf "adding key ~a for artist ~a~n" key artist)
             (add-to-genre-map key)
             (update-genre-map-partially 100)
+            (calculate-main-genre)
             (calculate-genre-colour))))
 
       (define/public (identified?)
@@ -163,6 +165,16 @@
             ;(unless (added-to-genre-map?)
             ;    (set-genre/count! '(("unclassifiable" . 1)))))
             0)
+
+      (define (calculate-main-genre)
+            (set! main-genre
+                        (car
+                            (foldl (lambda (x m)
+                                         (if (> (cdr x) (cdr m))
+                                           x
+                                           m))
+                                   (cons "unclassifiable" 0)
+                                   genre/count))))
 
       (define (calculate-genre-colour)
             ; genre colour is the genre with maximum value
@@ -323,8 +335,7 @@
 (define text-process-analyzing "Analyzing...")
 (define text-process-id-0 "Track:")
 (define text-process-id-1 "Genre:")
-(define text-process-id-2 "After unplugging your device, your music")
-(define text-process-id-3 "becomes one pixel on the building.")
+(define text-process-id-2 "Stop music to add it")
 
 (define (build-layout-text line [pos #(0 0 0)] #:scale [sc .1] #:colour [clr 1])
     (let ([t (build-type fluxus-scratchpad-font line)])
@@ -356,10 +367,9 @@
                 arrow-analyzing))
 
     (set! text-objs-process-identified (list
-                (build-layout-text text-process-id-0 #(-4 1 0))
-                (build-layout-text text-process-id-1 #(-4 -1 0))
-                (build-layout-text text-process-id-2 #(-4 -3 0) #:scale .07)
-                (build-layout-text text-process-id-3 #(-4 -3.7 0) #:scale .07)
+                (build-layout-text text-process-id-0 #(-4 1 0) #:scale .07)
+                (build-layout-text text-process-id-1 #(-4 -1 0) #:scale .07)
+                (build-layout-text text-process-id-2 #(-4 -3 0))
                 arrow-id))
 
     (hide-objs
@@ -367,7 +377,7 @@
       1))
 
 (define last-artist-obj 0)
-(define last-title-obj 0)
+(define last-genre-obj 0)
 
 (define (render-ui state)
     (hide-objs
@@ -375,14 +385,14 @@
       1)
 
     (case state
-        [(beat idle)
+        [(idle)
              (hide-objs text-objs-idle 0)]
         [(enter process)
               (cond [(send current-track identified?)
                         (when (zero? last-artist-obj)
-                              (set! last-artist-obj (build-layout-text (get-field artist current-track)
+                              (set! last-artist-obj (build-layout-text (string-append (get-field artist current-track) " / " (get-field title current-track))
                                                                      #(-4 0 0) #:colour #(1 0 0)))
-                              (set! last-title-obj (build-layout-text (get-field title current-track)
+                              (set! last-genre-obj (build-layout-text (get-field main-genre current-track)
                                                                      #(-4 -2 0) #:colour #(1 0 0))))
                         (hide-objs text-objs-process-identified 0)]
                    [else
@@ -392,9 +402,9 @@
         [(exit)
              (hide-objs text-objs-idle 0)
              (destroy last-artist-obj)
-             (destroy last-title-obj)
+             (destroy last-genre-obj)
              (set! last-artist-obj 0)
-             (set! last-title-obj 0)])
+             (set! last-genre-obj 0)])
     )
 
 (build-layout)
@@ -532,7 +542,7 @@
 
 (load-tracks "data/hyped-tracks.dat")
 
-;(set-camera-transform (mtranslate #(0 0 -37)))
+(set-camera-transform (mtranslate #(0 0 -10)))
 
 (with-primitive fc-pixels
     (pdata-map!  (lambda (c) 0) "c")
@@ -540,8 +550,8 @@
     (identity)
     (translate #(4 2.4 0))
     (scale (vmul (vector fc-pixels-width (- fc-pixels-height) 1) .1))
-	(hint-ignore-depth)
-	(hint-nozwrite)
+    (hint-ignore-depth)
+    (hint-nozwrite)
     (hint-cull-ccw)
     (hint-wire))
 
