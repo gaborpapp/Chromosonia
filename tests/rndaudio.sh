@@ -7,8 +7,8 @@ fi
 while :
 do
 	filename=`find $1 -name \*mp3 | gshuf -n1`
-	mplayer -endpos 25 "$filename"
-	sleep 2.5
+	mplayer -endpos 35 "$filename"
+	sleep 20
 done
 
 

@@ -147,10 +147,10 @@
       (define/public (on-exit)
             ; add "unclassifiable" genre to the map if it
             ; failed so far
-    ; NOTE: this needs to be synced with set-genre/count e.g. with a semaphore
+            ; NOTE: this needs to be synced with set-genre/count e.g. with a semaphore
             ;(unless (added-to-genre-map?)
             ;    (set-genre/count! '(("unclassifiable" . 1)))))
-	0)
+            0)
 
       (define (calculate-genre-colour)
             ; genre colour is the genre with maximum value
