@@ -61,7 +61,8 @@
              [main-genre "unclassifiable"]
              [clr (hash-ref genre-colour-hash "unclassifiable")]
              [key (genre-key '(("unclassifiable" . 1)))]
-             [added-to-genre-map #f])
+             [added-to-genre-map #f]
+			 [main-genre-found #f])
 
       (define/public (externalize)
            (list framerate beat-pattern artist title key clr genre/count))
@@ -147,7 +148,7 @@
             (calculate-genre-colour))))
 
       (define/public (identified?)
-            (or artist title))
+            (and artist title))
 
       (define/public (added-to-genre-map?)
             added-to-genre-map)
@@ -174,7 +175,8 @@
                                            x
                                            m))
                                    (cons "unclassifiable" 0)
-                                   genre/count))))
+                                   genre/count)))
+			(set! main-genre-found #t)) 
 
       (define (calculate-genre-colour)
             ; genre colour is the genre with maximum value
@@ -391,7 +393,9 @@
               (cond [(send current-track identified?)
                         (when (zero? last-artist-obj)
                               (set! last-artist-obj (build-layout-text (string-append (get-field artist current-track) " / " (get-field title current-track))
-                                                                     #(-4 0 0) #:colour #(1 0 0) #:scale .07))
+                                                                     #(-4 0 0) #:colour #(1 0 0) #:scale .07)))
+						(when (and (get-field current-track main-genre-found)
+								   (zero? last-genre-obj))
                               (set! last-genre-obj (build-layout-text (get-field main-genre current-track)
                                                                      #(-4 -2 0) #:colour #(1 0 0) #:scale .07)))
                         (hide-objs text-objs-process-identified 0)]
