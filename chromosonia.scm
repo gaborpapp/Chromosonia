@@ -393,7 +393,7 @@
                               (set! last-artist-obj (build-layout-text (string-append (get-field artist current-track) " / " (get-field title current-track))
                                                                      #(-4 0 0) #:colour #(1 0 0) #:scale .07))
                               (set! last-genre-obj (build-layout-text (get-field main-genre current-track)
-                                                                     #(-4 -2 0) #:colour #(1 0 0) #scale .07)))
+                                                                     #(-4 -2 0) #:colour #(1 0 0) #:scale .07)))
                         (hide-objs text-objs-process-identified 0)]
                    [else
                         (with-primitive arrow-analyzing
