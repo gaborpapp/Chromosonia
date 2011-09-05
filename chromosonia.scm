@@ -334,6 +334,9 @@
             (pdata-set! "c" offset (vmul clr (* opacity v)))))
 
     (with-primitive fc-pixels
+        (pdata-map!
+              (lambda (c) 0)
+            "c")
         (for ([track tracks])
             (draw-track-beat track v))
 
@@ -349,14 +352,14 @@
 (define arrow-id (build-plane))
 (with-primitive arrow-id
     (texture arrow-txt)
-    (translate #(-4.4 1.15 0))
+    (translate #(-4.4 -2.4 0))
     (scale (vector (/ (texture-width arrow-txt) 64)
                    (/ (texture-height arrow-txt) 64)
                     1)))
 (define arrow-analyzing (build-plane))
 (with-primitive arrow-analyzing
     (texture arrow-txt)
-    (translate #(-3.4 0.15 0))
+    (translate #(-3.1 -1.8 0))
     (scale (vector (/ (texture-width arrow-txt) 64)
                    (/ (texture-height arrow-txt) 64)
                     1)))
@@ -391,18 +394,18 @@
 
 (define (build-layout)
     (set! text-objs-idle (list
-            (build-layout-text text-idle-0 #(-2.4 0 0))
-            (build-layout-text text-idle-1 #(-2.4 -1 0))))
+            (build-layout-text text-idle-0 #(-2.4 -2.0 0))
+            (build-layout-text text-idle-1 #(-2.4 -3 0))))
 
     (set! text-objs-process-analyzing (list
-                (build-layout-text text-process-analyzing-0 #(-3 0 0))
-                (build-layout-text text-process-analyzing-1 #(-3 -1 0))
+                (build-layout-text text-process-analyzing-0 #(-2.4 -2 0))
+                (build-layout-text text-process-analyzing-1 #(-2.4 -3 0))
                 arrow-analyzing))
 
     (set! text-objs-process-identified (list
-                (build-layout-text text-process-id-0 #(-4 1 0) #:scale .07)
-                (build-layout-text text-process-id-1 #(-4 -1 0) #:scale .07)
-                (build-layout-text text-process-id-2 #(-4 -3 0))
+                (build-layout-text text-process-id-0 #(-3 -2.5 0) #:scale .07)
+                (build-layout-text text-process-id-1 #(-3 -3.5 0) #:scale .07)
+                (build-layout-text text-process-id-2 #(-3 -4.5 0))
                 arrow-id))
 
     (hide-objs
@@ -424,11 +427,11 @@
               (cond [(send current-track identified?)
                         (when (zero? last-artist-obj)
                               (set! last-artist-obj (build-layout-text (string-append (get-field artist current-track) " / " (get-field title current-track))
-                                                                     #(-4 0 0) #:scale .07)))
+                                                                     #(-1 -2.5 0) #:scale .07)))
                         (when (and (get-field main-genre-found current-track)
                                    (zero? last-genre-obj))
                               (set! last-genre-obj (build-layout-text (get-field main-genre current-track)
-                                                                     #(-4 -2 0)
+                                                                     #(-1 -3.5 0)
                                                                      #:colour (send current-track get-colour)
                                                                      #:scale .07)))
                         (hide-objs text-objs-process-identified 0)]
@@ -501,10 +504,10 @@
             ; notify the object that we are exiting
             (send current-track on-exit)
 
-			; save track database
-			(when (>= (length tracks) (+ last-saved-track-count save-track-count-diff))
-			  (save-tracks (string-append "data/tracks-" (timestamp) ".dat"))
-			  (set! last-saved-track-count (length tracks)))]
+            ; save track database
+            (when (>= (length tracks) (+ last-saved-track-count save-track-count-diff))
+              (save-tracks (string-append "data/tracks-" (timestamp) ".dat"))
+              (set! last-saved-track-count (length tracks)))]
 
     [(beat) ; beat-pattern
             (let ([v (clamp (/ (- (time) beat-start) beat-transition-duration))])
@@ -566,12 +569,11 @@
     (pdata-map!  (lambda (c) 0) "c")
     (pixels-upload)
     (identity)
-    (translate #(4 2.4 0))
-    (scale (vmul (vector fc-pixels-width (- fc-pixels-height) 1) .1))
+    (translate #(0 1.8 0))
+    (scale (vmul (vector fc-pixels-width (- fc-pixels-height) 1) .15))
     (hint-ignore-depth)
     (hint-nozwrite)
-    (hint-cull-ccw)
-    (hint-wire))
+    (hint-cull-ccw))
 
 (every-frame (mainloop))
 
