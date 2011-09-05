@@ -330,7 +330,7 @@
                    (/ (texture-height arrow-txt) 64)
                     1)))
 
-(define text-idle-0 "Plug your device")
+(define text-idle-0 "Plug in your device")
 (define text-idle-1 "and play some music")
 (define text-process-analyzing "Analyzing...")
 (define text-process-id-0 "Track:")
@@ -359,7 +359,7 @@
 
 (define (build-layout)
     (set! text-objs-idle (list
-            (build-layout-text text-idle-0 #(-2 0 0))
+            (build-layout-text text-idle-0 #(-2.4 0 0))
             (build-layout-text text-idle-1 #(-2.4 -1 0))))
 
     (set! text-objs-process-analyzing (list
@@ -391,9 +391,9 @@
               (cond [(send current-track identified?)
                         (when (zero? last-artist-obj)
                               (set! last-artist-obj (build-layout-text (string-append (get-field artist current-track) " / " (get-field title current-track))
-                                                                     #(-4 0 0) #:colour #(1 0 0)))
+                                                                     #(-4 0 0) #:colour #(1 0 0) #:scale .07))
                               (set! last-genre-obj (build-layout-text (get-field main-genre current-track)
-                                                                     #(-4 -2 0) #:colour #(1 0 0))))
+                                                                     #(-4 -2 0) #:colour #(1 0 0) #scale .07)))
                         (hide-objs text-objs-process-identified 0)]
                    [else
                         (with-primitive arrow-analyzing
