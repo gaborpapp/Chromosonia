@@ -126,7 +126,7 @@ private:
   bool nudgeNode(TwoDimArray<Node>::Iterator node) {
     int minSize = node->value->inputs.size() - 1;
     bool foundLessCrowdedNeighbour = false;
-    int leastCrowdedNeighbourX, leastCrowdedNeighbourY;
+    int leastCrowdedNeighbourX = -1, leastCrowdedNeighbourY = -1;
     unsigned int ny1 = (unsigned int) max((int)node->row - 1, 0);
     unsigned int ny2 = min(node->row + 1, gridHeight - 1);
     unsigned int nx1 = (unsigned int) max((int)node->column - 1, 0);
