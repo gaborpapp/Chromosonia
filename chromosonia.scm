@@ -20,6 +20,7 @@
 (define social-transition-duration 5)
 (define genre-map-background-opacity .5)
 
+(set-cursor 'none)
 (texture-params 0 '(min nearest mag nearest wrap-s clamp wrap-t clamp))
 
 (define backtxt (load-texture "ui/uid.png"))
@@ -143,7 +144,7 @@
             (set! key new-key)
             ;(printf "adding key ~a for artist ~a~n" key artist)
             (add-to-genre-map key)
-            (update-genre-map-partially 100)
+            (update-genre-map-partially 200)
             (calculate-main-genre)
             (calculate-genre-colour))))
 
@@ -393,18 +394,19 @@
               (cond [(send current-track identified?)
                         (when (zero? last-artist-obj)
                               (set! last-artist-obj (build-layout-text (string-append (get-field artist current-track) " / " (get-field title current-track))
-                                                                     #(-4 0 0) #:colour #(1 0 0) #:scale .07)))
-						(when (and (get-field current-track main-genre-found)
+                                                                     #(-4 0 0) #:scale .07)))
+						(when (and (get-field main-genre-found current-track)
 								   (zero? last-genre-obj))
                               (set! last-genre-obj (build-layout-text (get-field main-genre current-track)
-                                                                     #(-4 -2 0) #:colour #(1 0 0) #:scale .07)))
+                                                                     #(-4 -2 0)
+																	 #:colour (send current-track get-colour)
+																	 #:scale .07)))
                         (hide-objs text-objs-process-identified 0)]
                    [else
                         (with-primitive arrow-analyzing
                             (opacity (+ .7 (* .3 (sin (time))))))
                         (hide-objs text-objs-process-analyzing 0)])]
         [(exit)
-             (hide-objs text-objs-idle 0)
              (destroy last-artist-obj)
              (destroy last-genre-obj)
              (set! last-artist-obj 0)
