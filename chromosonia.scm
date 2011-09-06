@@ -99,8 +99,10 @@
                           (if (equal? gc '(("unclassifiable" . 1)))
                                 (let ([s-artist (spelling-suggestion a)])
                                       (printf "spelling: ~a -> ~a~n" a s-artist)
-                                      (set! artist s-artist)
-                                      (set-genre/count! (get-topgenres/count-normalized s-artist)))
+                                      (if s-artist
+                                          (set! artist s-artist)
+                                          (set! artist a))
+                                      (set-genre/count! (get-topgenres/count-normalized artist)))
                                 (begin
                                       (set! artist a)
                                       (set-genre/count! gc)))))))
