@@ -363,25 +363,29 @@
 (define arrow-id (build-plane))
 (with-primitive arrow-id
     (texture arrow-txt)
-    (translate #(-4.4 -2.4 0))
+    (identity)
+    (translate #(-3.5 -1.88 0))
     (scale (vector (/ (texture-width arrow-txt) 64)
                    (/ (texture-height arrow-txt) 64)
                     1)))
+
 (define arrow-analyzing (build-plane))
 (with-primitive arrow-analyzing
     (texture arrow-txt)
-    (translate #(-3.1 -1.8 0))
+    (identity)
+    (translate #(-2.9 -1.85 0))
     (scale (vector (/ (texture-width arrow-txt) 64)
                    (/ (texture-height arrow-txt) 64)
                     1)))
 
 (define text-idle-0 "Plug in your device")
 (define text-idle-1 "and play some music")
-(define text-process-analyzing-0 "Analyzing...")
-(define text-process-analyzing-1 "Please enjoy & wait")
+(define text-process-analyzing-0 "Visualizing and")
+(define text-process-analyzing-1 "detecting music...")
 (define text-process-id-0 "Track:")
 (define text-process-id-1 "Genre:")
-(define text-process-id-2 "Stop music to add it")
+(define text-process-id-2 "To visualize another track")
+(define text-process-id-3 "stop the music and wait")
 
 (define (build-layout-text line [pos #(0 0 0)] #:scale [sc .1] #:colour [clr 1])
     (let ([t (build-type fluxus-scratchpad-font line)])
@@ -414,9 +418,10 @@
                 arrow-analyzing))
 
     (set! text-objs-process-identified (list
-                (build-layout-text text-process-id-0 #(-3 -2.5 0) #:scale .07)
-                (build-layout-text text-process-id-1 #(-3 -3.5 0) #:scale .07)
-                (build-layout-text text-process-id-2 #(-3 -4.5 0))
+                (build-layout-text text-process-id-0 #(-3 -2 0) #:scale .07)
+                (build-layout-text text-process-id-1 #(-3 -2.7 0) #:scale .07)
+                (build-layout-text text-process-id-2 #(-3 -3.9 0))
+                (build-layout-text text-process-id-3 #(-3 -4.9 0))
                 arrow-id))
 
     (hide-objs
@@ -438,11 +443,11 @@
               (cond [(send current-track identified?)
                         (when (zero? last-artist-obj)
                               (set! last-artist-obj (build-layout-text (string-append (get-field artist current-track) " / " (get-field title current-track))
-                                                                     #(-1 -2.5 0) #:scale .07)))
+                                                                     #(-1 -2 0) #:scale .07)))
                         (when (and (get-field main-genre-found current-track)
                                    (zero? last-genre-obj))
                               (set! last-genre-obj (build-layout-text (get-field main-genre current-track)
-                                                                     #(-1 -3.5 0)
+                                                                     #(-1 -2.7 0)
                                                                      #:colour (send current-track get-colour)
                                                                      #:scale .07)))
                         (hide-objs text-objs-process-identified 0)]

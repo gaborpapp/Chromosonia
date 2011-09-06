@@ -4,7 +4,7 @@ from com.android.monkeyrunner import MonkeyRunner, MonkeyDevice, MonkeyImage
 import os, time
 
 def shazam(snap_path):
-	sleep_seconds = 24
+	sleep_seconds = 20
 	print "Using shazam on android by monkeyrunner."
 	print "Path for the screenshot:", snap_path
 	print "Waiting for device to connect for 5 seconds..."
