@@ -7,6 +7,7 @@
 (require racket/system)
 (require fluxus-018/chromosonia-audio)
 (require "lastfm/lastfm.ss")
+(require "lastfm/yahoospell.ss")
 (require "facade-control/facade-control.ss")
 (require "genre-map.ss")
 
@@ -95,7 +96,12 @@
              (printf "artist: ~a~n" a)
              (set! artist a)
              (thread (lambda ()
-                       (set-genre/count! (get-topgenres/count-normalized artist)))))
+                        (let ([gc (get-topgenres/count-normalized artist)])
+                          (if (equal? gc '(("unclassifiable" . 1)))
+                                (let ([s-artist (spelling-suggestion artist)])
+                                      (printf "spelling: ~a -> ~a~n" artist s-artist)
+                                      (set-genre/count! (get-topgenres/count-normalized s-artist)))
+                                (set-genre/count! gc))))))
 
       (define/public (set-title! a)
              (printf "title: ~a~n" a)
