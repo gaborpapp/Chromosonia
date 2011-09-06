@@ -94,14 +94,16 @@
 
       (define/public (set-artist! a)
              (printf "artist: ~a~n" a)
-             (set! artist a)
              (thread (lambda ()
-                        (let ([gc (get-topgenres/count-normalized artist)])
+                        (let ([gc (get-topgenres/count-normalized a)])
                           (if (equal? gc '(("unclassifiable" . 1)))
-                                (let ([s-artist (spelling-suggestion artist)])
-                                      (printf "spelling: ~a -> ~a~n" artist s-artist)
+                                (let ([s-artist (spelling-suggestion a)])
+                                      (printf "spelling: ~a -> ~a~n" a s-artist)
+                                      (set! artist s-artist)
                                       (set-genre/count! (get-topgenres/count-normalized s-artist)))
-                                (set-genre/count! gc))))))
+                                (begin
+                                      (set! artist a)
+                                      (set-genre/count! gc)))))))
 
       (define/public (set-title! a)
              (printf "title: ~a~n" a)
