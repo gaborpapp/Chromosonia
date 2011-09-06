@@ -14,7 +14,8 @@
 
 ;(define host "192.168.2.2")
 ;(define host "169.254.59.222")
-(define host "192.168.2.4")
+;(define host "192.168.2.4")
+(define host "192.168.7.121")
 
 (define beat-transition-duration 5)
 (define social-transition-duration 5)

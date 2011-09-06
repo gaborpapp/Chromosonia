@@ -1,7 +1,8 @@
 (require "facade-control.ss")
 
 ; ip address of the simulator
-(define host "192.168.2.2")
+;(define host "192.168.2.2")
+(define host "192.168.7.121")
 
 (texture-params 0 '(min nearest mag nearest)) ; no bilinear - show the pixels
 
