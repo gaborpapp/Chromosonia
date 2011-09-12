@@ -1,4 +1,18 @@
-;; chromosonia
+;; Chromosonia
+;; Copyright (C) 2011 Alex Berman, Gabor Papp
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program. If not, see http://www.gnu.org/licenses/.
 
 (require racket/math)
 (require racket/class)
@@ -13,10 +27,10 @@
 
 (clear)
 
-;(define host "192.168.2.2")
+(define host "192.168.1.189")
 ;(define host "169.254.59.222")
 ;(define host "192.168.2.4")
-(define host "192.168.7.121")
+;(define host "192.168.7.121")
 
 (define beat-transition-duration 5)
 (define social-transition-duration 5)
