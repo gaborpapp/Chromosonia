@@ -75,7 +75,7 @@
              [beat-pattern #()]
              [artist #f]
              [title #f]
-             [genre/count '(("unclassibiable" . 1))]
+             [genre/count '(("unclassifiable" . 1))]
              [main-genre "unclassifiable"]
              [clr (hash-ref genre-colour-hash "unclassifiable")]
              [key (genre-key '(("unclassifiable" . 1)))]
